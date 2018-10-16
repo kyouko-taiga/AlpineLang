@@ -1,4 +1,10 @@
+# macOS
 .DS_Store
+
+# Swift & Xcode
 /.build
 /Packages
 /*.xcodeproj
+
+# Dev. environment
+Samples
