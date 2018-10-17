@@ -40,6 +40,14 @@ public final class Module: Node {
   /// The scope delimited by the module.
   public var innerScope: Scope?
 
+  /// The top-level function declarations.
+  public var functions: [Symbol: Func] {
+    let symbolsAndNodes = statements
+      .compactMap({ node in node as? Func })
+      .compactMap({ node in node.symbol.map({ sym in (sym, node) }) })
+    return Dictionary(uniqueKeysWithValues: symbolsAndNodes)
+  }
+
 }
 
 /// A function declaration.
