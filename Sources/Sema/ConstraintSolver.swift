@@ -175,9 +175,9 @@ public struct ConstraintSolver {
       }
 
       // If we can't find `T` in `U`, it might be that `U` contains types that aren't reified or
-      // fully infered yet. Hence we should break the conformance into a disjunction of equalities
+      // fully infered yet. Hence we should break the constraint into a disjunction of conformances
       // for each case of the union.
-      let choices = union.cases.map { Constraint.equality(t: a, u: $0, at: constraint.location) }
+      let choices = union.cases.map { Constraint.conformance(t: a, u: $0, at: constraint.location) }
       constraints.insert(.disjunction(choices, at: constraint.location), at: 0)
       return .success
 
