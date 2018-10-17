@@ -7,7 +7,7 @@ extension Parser {
   /// Because the parser is implemented as a recursive descent parser, a particular attention must
   /// be made as to how expressions can be parsed witout triggering infinite recursions, due to the
   /// left-recursion of the related production rules.
-  func parseExpr() throws -> Expr {
+  public func parseExpr() throws -> Expr {
     // Parse an atom.
     var expression = try parseAtom()
 

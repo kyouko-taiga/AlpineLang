@@ -19,7 +19,7 @@ public class Parser {
   }
 
   /// Parses the token stream into a module declaration.
-  public func parse() throws -> Module {
+  public func parseModule() throws -> Module {
     while true {
       // Skip statement delimiters.
       consumeMany { $0.isStatementDelimiter }
