@@ -2,8 +2,11 @@ import AST
 import Interpreter
 
 let input = """
-type Nat :: zero() or succ(_: Nat)
-func main () -> Nat :: succ(zero())
+// type Nat :: zero() or succ(_: Nat)
+// func main () -> Nat :: succ(zero())
+
+type Nat :: #zero or #succ(_: Nat)
+func main () -> Nat :: #succ(#zero)
 
 // func make_point () -> point(x: Nat, y: Nat) :: point(x: zero(), y: zero())
 // func recurse (i: Nat) -> Nat :: recurse(i: i)
@@ -27,8 +30,8 @@ do {
   print()
 
   // Interpret an expression.
-  // let val = try interpreter.interpret(string: "a()()")
-  // dumper.dump(ast: val as! Expr)
+  let val = try interpreter.eval(string: "main()")
+  print(val)
 
 } catch InterpreterError.staticFailure(let errors) {
   _ = errors.map(diagnose)
