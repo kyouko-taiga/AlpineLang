@@ -8,8 +8,9 @@ let package = Package(
   ],
   dependencies: [],
   targets: [
-    .target(name: "alpine", dependencies: ["AST", "Parser", "Sema"]),
+    .target(name: "alpine", dependencies: ["AST", "Interpreter", "Parser", "Sema"]),
     .target(name: "AST", dependencies: ["Utils"]),
+    .target(name: "Interpreter", dependencies: ["AST", "Parser", "Sema"]),
     .target(name: "Parser", dependencies: ["AST"]),
     .target(name: "Sema", dependencies: ["AST", "Parser", "Utils"]),
     .target(name: "Utils", dependencies: []),
