@@ -59,9 +59,21 @@ public final class ASTContext {
     }) {
       return type
     }
-    let type = UnionType(cases: cases)
+    let type = UnionType(cases: flatten(cases))
     unionTypes.append(type)
     return type
+  }
+
+  private func flatten(_ cases: Set<TypeBase>) -> Set<TypeBase> {
+    var result: Set<TypeBase> = []
+    for type in cases {
+      if let union = type as? UnionType {
+        result.formUnion(flatten(union.cases))
+      } else {
+        result.insert(type)
+      }
+    }
+    return result
   }
 
   // MARK: Built-ins
