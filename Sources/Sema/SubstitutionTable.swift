@@ -68,11 +68,19 @@ public struct SubstitutionTable {
     }
 
     switch walked {
+    case let t as Metatype    : return reify(type: t, in: context, skipping: &visited)
     case let t as FunctionType: return reify(type: t, in: context, skipping: &visited)
     case let t as TupleType   : return reify(type: t, in: context, skipping: &visited)
+    case let t as UnionType   : return reify(type: t, in: context, skipping: &visited)
     default:
       return walked
     }
+  }
+
+  public func reify(type: Metatype, in context: ASTContext, skipping visited: inout [TupleType])
+    -> Metatype
+  {
+    return reify(type: type.type, in: context, skipping: &visited).metatype
   }
 
   public func reify(type: FunctionType, in context: ASTContext, skipping visited: inout [TupleType])
@@ -92,6 +100,14 @@ public struct SubstitutionTable {
       TupleTypeElem(label: $0.label, type: reify(type: $0.type, in: context, skipping: &visited))
     }
     return type
+  }
+
+  public func reify(type: UnionType, in context: ASTContext, skipping visited: inout [TupleType])
+    -> UnionType
+  {
+    return context.getUnionType(cases: Set(type.cases.map({
+      reify(type: $0, in: context, skipping: &visited)
+    })))
   }
 
   /// Determines whether this substitution table is equivalent to another one, up to the variables
