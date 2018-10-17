@@ -1,5 +1,5 @@
 /// Base class for all types in Anzen.
-public class TypeBase: Hashable {
+public class TypeBase: Hashable, CustomStringConvertible {
 
   fileprivate init() {}
 
@@ -12,14 +12,23 @@ public class TypeBase: Hashable {
     return 0
   }
 
+  public var description: String {
+    var memo = Set<TupleType>()
+    return serialize(memo: &memo)
+  }
+
   public static func == (lhs: TypeBase, rhs: TypeBase) -> Bool {
     return lhs === rhs
+  }
+
+  fileprivate func serialize(memo: inout Set<TupleType>) -> String {
+    return String(describing: self)
   }
 
 }
 
 /// Class to represent the description of a type.
-public final class Metatype: TypeBase, CustomStringConvertible {
+public final class Metatype: TypeBase {
 
   fileprivate init(of type: TypeBase) {
     self.type = type
@@ -27,23 +36,25 @@ public final class Metatype: TypeBase, CustomStringConvertible {
 
   public let type: TypeBase
 
-  public var description: String {
-    return "\(type).metatype"
+  fileprivate override func serialize(memo: inout Set<TupleType>) -> String {
+    return "\(type.serialize(memo: &memo)).metatype"
   }
 
 }
 
 /// A special type that's used to represent a typing failure.
-public final class ErrorType: TypeBase, CustomStringConvertible {
+public final class ErrorType: TypeBase {
 
   public static let get = ErrorType()
 
-  public let description = "<error type>"
+  fileprivate override func serialize(memo: inout Set<TupleType>) -> String {
+    return "<error type>"
+  }
 
 }
 
 /// Class to represent the built-in types.
-public final class BuiltinType: TypeBase, CustomStringConvertible {
+public final class BuiltinType: TypeBase {
 
   private init(name: String) {
     self.name = name
@@ -55,7 +66,7 @@ public final class BuiltinType: TypeBase, CustomStringConvertible {
     return name.hashValue
   }
 
-  public var description: String {
+  fileprivate override func serialize(memo: inout Set<TupleType>) -> String {
     return name
   }
 
@@ -67,7 +78,7 @@ public final class BuiltinType: TypeBase, CustomStringConvertible {
 }
 
 /// A type variable used during type checking.
-public final class TypeVariable: TypeBase, CustomStringConvertible {
+public final class TypeVariable: TypeBase {
 
   public override init() {
     self.id = TypeVariable.nextID
@@ -81,14 +92,14 @@ public final class TypeVariable: TypeBase, CustomStringConvertible {
     return id
   }
 
-  public var description: String {
+  fileprivate override func serialize(memo: inout Set<TupleType>) -> String {
     return "$\(id)"
   }
 
 }
 
 /// Class to represent function types.
-public final class FunctionType: TypeBase, CustomStringConvertible {
+public final class FunctionType: TypeBase {
 
   internal init(domain: TupleType, codomain: TypeBase) {
     self.domain = domain
@@ -100,14 +111,14 @@ public final class FunctionType: TypeBase, CustomStringConvertible {
   /// The codomain of the function.
   public let codomain: TypeBase
 
-  public var description: String {
-    return "\(domain) -> \(codomain)"
+  fileprivate override func serialize(memo: inout Set<TupleType>) -> String {
+    return "\(domain.serialize(memo: &memo)) -> \(codomain.serialize(memo: &memo))"
   }
 
 }
 
 /// Class to represent tuple types.
-public final class TupleType: TypeBase, CustomStringConvertible {
+public final class TupleType: TypeBase {
 
   internal init(label: String?, elements: [TupleTypeElem]) {
     self.label = label
@@ -119,9 +130,13 @@ public final class TupleType: TypeBase, CustomStringConvertible {
   /// The elements of the type.
   public var elements: [TupleTypeElem]
 
-  public var description: String {
+  fileprivate override func serialize(memo: inout Set<TupleType>) -> String {
+    guard !memo.contains(self)
+      else { return "..." }
+    memo.insert(self)
+
     let elements = self.elements
-      .map({ ($0.label ?? "_") + ": \($0.type)" })
+      .map({ ($0.label ?? "_") + ": \($0.type.serialize(memo: &memo))" })
       .joined(separator: ", ")
 
     return label != nil
@@ -157,7 +172,7 @@ public struct TupleTypeElem: Equatable, CustomStringConvertible {
 }
 
 /// Class to represent union types.
-public final class UnionType: TypeBase, CustomStringConvertible {
+public final class UnionType: TypeBase {
 
   internal init(cases: Set<TypeBase>) {
     self.cases = cases
@@ -165,9 +180,13 @@ public final class UnionType: TypeBase, CustomStringConvertible {
 
   public let cases: Set<TypeBase>
 
-  public var description: String {
-    return "(" + cases.map({ String(describing: $0) }).joined(separator: " or ") + ")"
+  fileprivate override func serialize(memo: inout Set<TupleType>) -> String {
+    let cases = self.cases
+      .map({ $0.serialize(memo: &memo) })
+      .joined(separator: " or ")
+    return "( \(cases) )"
   }
+
 
   public static func == (lhs: UnionType, rhs: UnionType) -> Bool {
     return lhs.cases == rhs.cases
