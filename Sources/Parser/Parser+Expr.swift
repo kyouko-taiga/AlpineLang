@@ -73,6 +73,8 @@ extension Parser {
 
     case _ where token.isPrefixOperator:
       expression = try parseUnary()
+    case .sharp:
+      expression = try parseTuple()
     case .identifier:
       expression = try parseIdent()
     case .if:
@@ -311,14 +313,31 @@ extension Parser {
 
   /// Parses a tuple.
   func parseTuple() throws -> Tuple {
-    // Parse the optional label of the tuple.
-    let label = consume(.identifier)
-    if label != nil {
+    var start: SourceLocation? = nil
+    var label: String? = nil
+
+    // Parse the label of the tuple, if any.
+    if let sharp = consume(.sharp) {
+      guard let identifier = consume(.identifier)
+        else { throw parseFailure(.expectedIdentifier) }
+      start = sharp.range.start
+      label = identifier.value
+
+      // Labeled tuples may not have explicit tuple elements.
+      let backtrackPosition = streamPosition
       consumeNewlines()
+      if label != nil && peek().kind != .leftParen {
+        rewind(to: backtrackPosition)
+        return Tuple(
+          label: label,
+          elements: [],
+          module: module,
+          range: SourceRange(from: start!, to: identifier.range.end))
+      }
     }
 
     // Parse the elements.
-    guard let start = consume(.leftParen, afterMany: .newline)?.range.start
+    guard let listStart = consume(.leftParen)?.range.start
       else { throw unexpectedToken(expected: "(") }
     let elements = try parseList(delimitedBy: .rightParen, parsingElementWith: parseTupleElem)
     guard let end = consume(.rightParen)?.range.end
@@ -334,31 +353,34 @@ extension Parser {
     }
 
     return Tuple(
-      label: label?.value,
+      label: label,
       elements: elements,
       module: module,
-      range: SourceRange(from: label?.range.start ?? start, to: end))
+      range: SourceRange(from: start ?? listStart, to: end))
   }
 
-  /// Parses a tuple element signature.
+  /// Parses a tuple element.
   func parseTupleElem() throws -> TupleElem {
-    // Parse the label of the element.
-    guard let label = consume(.identifier) ?? consume(.underscore)
-      else { throw parseFailure(.expectedIdentifier) }
+    // Parse the optional label of the elements.
+    var label: Token? = nil
+    let backtrackPosition = streamPosition
+    if let token = consume(.identifier) {
+      consumeNewlines()
+      if consume(.colon, afterMany: .newline) == nil {
+        rewind(to: backtrackPosition)
+      } else {
+        label = token
+      }
+    }
 
-    // Consume the colon delimiting the label and its value.
-    guard consume(.colon, afterMany: .newline) != nil
-      else { throw unexpectedToken(expected: "colon") }
-
-    // Parse the value of the element.
-    consumeNewlines()
+    // Parse the elements's value.
     let value = try parseExpr()
-
+    let start = label?.range.start ?? value.range.start
     return TupleElem(
-      label: label.kind == .identifier ? label.value : nil,
+      label: label?.value,
       value: value,
       module: module,
-      range: SourceRange(from: label.range.start, to: value.range.end))
+      range: SourceRange(from: start, to: value.range.end))
   }
 
 }

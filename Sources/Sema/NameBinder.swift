@@ -126,25 +126,6 @@ public final class NameBinder: ASTVisitor, SAPass {
     scopes.pop()
   }
 
-  public func visit(_ node: Call) throws {
-    if let ident = node.callee as? Ident {
-      // Due to the grammar being ambiguous, call expressions whose callee is an identifier are
-      // indistinguishable from labeled tuples at this point. Hence they must be treated apart.
-      // Indeed, if the callee does in fact refer to the label of a tuple, it'd be normal not to
-      // find a scope that defines it.
-      if let scope = findScope(declaring: ident.name) {
-        ident.scope = scope
-      } else {
-        ident.scope = ident.module.innerScope
-      }
-    } else {
-      try visit(node.callee)
-    }
-
-    // No matter the actual semantics of the node, its arguments should be visited the same way.
-    try visit(node.arguments)
-  }
-
   public func visit(_ node: Ident) throws {  
     // Find the scope that defines the visited identifier.
     guard let scope = findScope(declaring: node.name) else {

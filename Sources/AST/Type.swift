@@ -135,13 +135,17 @@ public final class TupleType: TypeBase {
       else { return "..." }
     memo.insert(self)
 
+    guard (self.label != nil) || (!self.elements.isEmpty)
+      else { return "()" }
+
     let elements = self.elements
       .map({ ($0.label ?? "_") + ": \($0.type.serialize(memo: &memo))" })
       .joined(separator: ", ")
 
-    return label != nil
-      ? "\(label!)(\(elements))"
-      : "(\(elements))"
+    let label = self.label.map { "#\($0)" } ?? ""
+    let trailer = elements.isEmpty ? "" : "(\(elements))"
+
+    return label + trailer
   }
 
   public static func == (lhs: TupleType, rhs: TupleType) -> Bool {

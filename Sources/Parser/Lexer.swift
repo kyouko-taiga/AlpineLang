@@ -256,6 +256,7 @@ extension Lexer: IteratorProtocol, Sequence {
       case ".": kind = .dot
       case ",": kind = .comma
       case ":": kind = .colon
+      case "#": kind = .sharp
       case "!": kind = .exclamationMark
       case "?": kind = .questionMark
       case "(": kind = .leftParen
@@ -306,4 +307,4 @@ func isAlnumOrUnderscore(_ char: UnicodeScalar) -> Bool {
 }
 
 /// Set of operator symbols.
-let operatorChars = Set<UnicodeScalar>(".,:!?(){}[]<>-*/%+-=&".unicodeScalars)
+let operatorChars = Set<UnicodeScalar>(".,:!?(){}[]<>-*/%+-=&#".unicodeScalars)

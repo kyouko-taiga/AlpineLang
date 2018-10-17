@@ -142,10 +142,7 @@ public final class ConstraintCreator: ASTVisitor, SAPass {
   }
 
   public func visit(_ node: Call) throws {
-    // Due to the grammar being ambiguous, call expressions whose callee is an identifier are
-    // indistinguishable from labeled tuples at this point, so we need to handle both situations
-    // here. In both cases, we handle the list of arguments (or tuple elements) by building the
-    // supposed type of the tuple they represent.
+    // Build the supposed type of the callee's parameters.
     let elements = node.arguments.map { TupleTypeElem(label: $0.label, type: TypeVariable()) }
     for (i, (arg, elem)) in zip(node.arguments, elements).enumerated() {
       try visit(arg)
@@ -153,33 +150,14 @@ public final class ConstraintCreator: ASTVisitor, SAPass {
         constraint: .conformance(t: arg.type!, u: elem.type, at: .location(node, .tuple) + .element(i)))
     }
 
+    // Build the supposed type of the callee.
     node.type = TypeVariable()
-    var choices: [Constraint] = []
-
-    if let ident = node.callee as? Ident {
-      // If the callee's an identifier, it may be a tuple label rather than a function name, hence
-      // requiring the addition of a conformance constraint with the type of the node.
-      let tupleType = context.getTupleType(label: ident.name, elements: elements)
-      choices.append(.conformance(t: tupleType, u: node.type!, at: .location(node, .tuple)))
-
-      if ident.scope?.symbols[ident.name] == nil {
-        // If there aren't any symbols for the identifier, it can't represent a function.
-        context.add(constraint: choices[0])
-        return
-      }
-    }
-
-    // In cases the callee may represent a function, we need to build its supposed type as well.
     try visit(node.callee)
     let domain = context.getTupleType(label: nil, elements: elements)
     let funcType = context.getFunctionType(from: domain, to: node.type!)
-    choices.append(.equality(t: node.callee.type!, u: funcType, at: .location(node, .call)))
 
-    if choices.count == 1 {
-      context.add(constraint: choices[0])
-    } else {
-      context.add(constraint: .disjunction(choices, at: .location(node, .call)))
-    }
+    context.add(constraint:
+      .equality(t: node.callee.type!, u: funcType, at: .location(node, .call)))
   }
 
   public func visit(_ node: Arg) throws {

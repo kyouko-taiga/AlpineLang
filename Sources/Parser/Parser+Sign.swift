@@ -73,27 +73,44 @@ extension Parser {
         return domain
       }
 
+    case .sharp:
+      return try parseTupleSign()
+
     case .identifier:
-      // The the signature starts with an identifier, it could be either a type identifier, or a
-      // named tuple signature. We try to parse the latter first.
-      return try attempt(parseTupleSign) ?? parseTypeIdent()
+      return try parseTypeIdent()
 
     default:
-      // Parse a type identifier.
       return try parseTypeIdent()
     }
   }
 
   /// Parses a tuple signature.
   func parseTupleSign() throws -> TupleSign {
-    // Parse the optional label of the signature.
-    let label = consume(.identifier)
-    if label != nil {
+    var start: SourceLocation? = nil
+    var label: String? = nil
+
+    // Parse the label of the signature, if any.
+    if let sharp = consume(.sharp) {
+      guard let identifier = consume(.identifier)
+        else { throw parseFailure(.expectedIdentifier) }
+      start = sharp.range.start
+      label = identifier.value
+
+      // Labeled tubple signatures may not have explicit tuple elements.
+      let backtrackPosition = streamPosition
       consumeNewlines()
+      if label != nil && peek().kind != .leftParen {
+        rewind(to: backtrackPosition)
+        return TupleSign(
+          label: label,
+          elements: [],
+          module: module,
+          range: SourceRange(from: start!, to: identifier.range.end))
+      }
     }
 
-    // Parse the element signatures.
-    guard let start = consume(.leftParen, afterMany: .newline)?.range.start
+    // Parse the elements.
+    guard let listStart = consume(.leftParen)?.range.start
       else { throw unexpectedToken(expected: "(") }
     let elements = try parseList(delimitedBy: .rightParen, parsingElementWith: parseTupleElemSign)
     guard let end = consume(.rightParen)?.range.end
@@ -109,10 +126,10 @@ extension Parser {
     }
 
     return TupleSign(
-      label: label?.value,
+      label: label,
       elements: elements,
       module: module,
-      range: SourceRange(from: label?.range.start ?? start, to: end))
+      range: SourceRange(from: start ?? listStart, to: end))
   }
 
   /// Parses a tuple element signature.

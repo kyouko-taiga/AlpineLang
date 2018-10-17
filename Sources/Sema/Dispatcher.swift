@@ -6,7 +6,6 @@ import Utils
 /// This pass is responsible to finalize the AST typing. It does so by:
 /// * Reifying the type of each node, according to the solution it is provided with.
 /// * Resolving the symbol associated with each identifier, based on their type.
-/// * Disambiguise named tuple and call expressions.
 ///
 /// - Note: This pass may fail if the dispatcher is unable to unambiguously disambiguise the
 ///   semantics of a particular node.
@@ -169,24 +168,6 @@ public final class Dispatcher: ASTTransformer {
     // Reify the type of the node.
     node.type = node.type.map {
       solution.reify(type: $0, in: context, skipping: &visited)
-    }
-
-    // If the node doesn't have a function type, then it's likely to be a named tuple.
-    if !(node.type is FunctionType) {
-      guard let ident = node.callee as? Ident
-        else { fatalError("Invalid AST") }
-
-      let elements = node.arguments.map({ (arg: Arg) -> TupleElem in
-        let elem = TupleElem(
-          label: arg.label, value: arg.value, module: arg.module, range: arg.range)
-        elem.type = arg.type
-        return elem
-      })
-
-      let tuple = Tuple(
-        label: ident.name, elements: elements, module: node.module, range: node.range)
-      tuple.type = node.type
-      return try transform(tuple)
     }
 
     node.callee = try transform(node.callee) as! Expr

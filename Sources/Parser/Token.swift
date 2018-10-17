@@ -39,6 +39,7 @@ public enum TokenKind: String {
   case colon
   case doubleColon
   case semicolon
+  case sharp
   case exclamationMark
   case questionMark
   case ellipsis
