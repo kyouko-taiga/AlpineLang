@@ -172,16 +172,14 @@ public struct ConstraintSolver {
         // to our assumptions. However, if `U` isn't fully inferred (i.e. still contains unknown
         // types), we may be able to use such conformance constraints to infer some of the missing
         // information.
-      } else if union.cases.contains(where: { $0 is TypeVariable }) {
-        // If there are still unknown types in `U`, then `T` could match with any of them.
-        let choices = union.cases.filter({ $0 is TypeVariable }).map {
-          Constraint.equality(t: a, u: $0, at: constraint.location)
-        }
-        constraints.insert(.disjunction(choices, at: constraint.location), at: 0)
-        return .success
-      } else {
-        return .failure
       }
+
+      // If we can't find `T` in `U`, it might be that `U` contains types that aren't reified or
+      // fully infered yet. Hence we should break the conformance into a disjunction of equalities
+      // for each case of the union.
+      let choices = union.cases.map { Constraint.equality(t: a, u: $0, at: constraint.location) }
+      constraints.insert(.disjunction(choices, at: constraint.location), at: 0)
+      return .success
 
     case (let fl as FunctionType, let fr as FunctionType):
       // Simplify the constraint.
