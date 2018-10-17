@@ -20,6 +20,11 @@ public final class ASTDumper<OutputStream>: ASTVisitor where OutputStream: TextO
     return String(repeating: "  ", count: level)
   }
 
+  public func dump(ast: Node) {
+    try! visit(ast)
+    print()
+  }
+
   public func visit(_ node: Module) throws {
     self <<< indent <<< "(module"
     self <<< " inner_scope='" <<< node.innerScope <<< "'"
@@ -28,7 +33,7 @@ public final class ASTDumper<OutputStream>: ASTVisitor where OutputStream: TextO
       self <<< "\n"
       withIndentation { try visit(node.statements) }
     }
-    self <<< ")\n"
+    self <<< ")"
   }
 
   public func visit(_ node: Func) throws {
