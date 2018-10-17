@@ -1,7 +1,7 @@
 import AST
 import Utils
 
-/// Visitor that applies a type solution to an untyped AST.
+/// Transform that applies a type solution to an untyped AST.
 ///
 /// This pass is responsible to finalize the AST typing. It does so by:
 /// * Reifying the type of each node, according to the solution it is provided with.
@@ -10,7 +10,7 @@ import Utils
 ///
 /// - Note: This pass may fail if the dispatcher is unable to unambiguously disambiguise the
 ///   semantics of a particular node.
-public final class Dispatcher: ASTVisitor, SAPass {
+public final class Dispatcher: ASTTransformer {
 
   public init(context: ASTContext) {
     self.context = context
@@ -29,13 +29,14 @@ public final class Dispatcher: ASTVisitor, SAPass {
   /// The tuple types already reified.
   private var visited: [TupleType] = []
 
-  public func visit(_ node: Module) throws {
+  public func transform(_ node: Module) throws -> Node {
     // Reify the types of the symbols in the scope of the module.
     node.innerScope.map { reifyScopeSymbols(of: $0) }
-    try traverse(node)
+    node.statements = try node.statements.map(transform)
+    return node
   }
 
-  public func visit(_ node: Func) throws {
+  public func transform(_ node: Func) throws -> Node {
     // Reify the type of the node.
     node.type = node.type.map {
       solution.reify(type: $0, in: context, skipping: &visited)
@@ -43,50 +44,54 @@ public final class Dispatcher: ASTVisitor, SAPass {
 
     // Reify the types of the symbols in the scope of the function.
     node.innerScope.map { reifyScopeSymbols(of: $0) }
-
-    try traverse(node)
     assert(node.type == node.symbol?.type)
+
+    node.signature = try transform(node.signature) as! FuncSign
+    node.body = try transform(node.body) as! Expr
+    return node
   }
 
-  public func visit(_ node: TypeIdent) throws {
-    // Reify the type of the node.
-    node.type = node.type.map {
-      solution.reify(type: $0, in: context, skipping: &visited)
-    }
-  }
-
-  public func visit(_ node: FuncSign) throws {
-    // Reify the type of the node.
-    node.type = node.type.map {
-      solution.reify(type: $0, in: context, skipping: &visited)
-    }
-
-    // Reify the type of the domain and codomain declarations.
-    try visit(node.domain)
-    try visit(node.codomain)
-  }
-
-  public func visit(_ node: TupleSign) throws {
+  public func transform(_ node: TypeIdent) throws -> Node {
     // Reify the type of the node.
     node.type = node.type.map {
       solution.reify(type: $0, in: context, skipping: &visited)
     }
 
-    // Reify the type of the tuple elements.
-    try visit(node.elements)
+    return node
   }
 
-  public func visit(_ node: UnionSign) throws {
+  public func transform(_ node: FuncSign) throws -> Node {
     // Reify the type of the node.
     node.type = node.type.map {
       solution.reify(type: $0, in: context, skipping: &visited)
     }
 
-    // Reify the type of the union's cases.
-    try visit(node.cases)
+    node.domain = try transform(node.domain) as! TupleSign
+    node.codomain = try transform(node.codomain) as! TypeSign
+    return node
   }
 
-  public func visit(_ node: If) throws {
+  public func transform(_ node: TupleSign) throws -> Node {
+    // Reify the type of the node.
+    node.type = node.type.map {
+      solution.reify(type: $0, in: context, skipping: &visited)
+    }
+
+    node.elements = try node.elements.map(transform) as! [TupleSignElem]
+    return node
+  }
+
+  public func transform(_ node: UnionSign) throws -> Node {
+    // Reify the type of the node.
+    node.type = node.type.map {
+      solution.reify(type: $0, in: context, skipping: &visited)
+    }
+
+    node.cases = try node.cases.map(transform) as! [TypeSign]
+    return node
+  }
+
+  public func transform(_ node: If) throws -> Node {
     // Reify the type of the node.
     node.type = node.type.map {
       solution.reify(type: $0, in: context, skipping: &visited)
@@ -96,21 +101,24 @@ public final class Dispatcher: ASTVisitor, SAPass {
     node.thenScope.map { reifyScopeSymbols(of: $0) }
     node.elseScope.map { reifyScopeSymbols(of: $0) }
 
-    // Continue dispatching on the condition and branches.
-    try traverse(node)
+    node.condition = try transform(node.condition) as! Expr
+    node.thenExpr = try transform(node.thenExpr) as! Expr
+    node.elseExpr = try transform(node.elseExpr) as! Expr
+    return node
   }
 
-  public func visit(_ node: Match) throws {
+  public func transform(_ node: Match) throws -> Node {
     // Reify the type of the node.
     node.type = node.type.map {
       solution.reify(type: $0, in: context, skipping: &visited)
     }
 
-    // Continue dispatching on the subject and cases.
-    try traverse(node)
+    node.subject = try transform(node.subject) as! Expr
+    node.cases = try node.cases.map(transform) as! [MatchCase]
+    return node
   }
 
-  public func visit(_ node: MatchCase) throws {
+  public func transform(_ node: MatchCase) throws -> Node {
     // Reify the type of the node.
     node.type = node.type.map {
       solution.reify(type: $0, in: context, skipping: &visited)
@@ -119,69 +127,115 @@ public final class Dispatcher: ASTVisitor, SAPass {
     // Reify the types of the symbols in the scope of the case.
     node.innerScope.map { reifyScopeSymbols(of: $0) }
 
-    // Continue dispatching on the pattern and value.
-    try traverse(node)
+    node.pattern = try transform(node.pattern) as! Expr
+    node.value = try transform(node.value) as! Expr
+    return node
   }
 
-  public func visit(_ node: LetBinding) throws {
+  public func transform(_ node: LetBinding) throws -> Node {
     // Reify the type of the node.
     node.type = node.type.map {
       solution.reify(type: $0, in: context, skipping: &visited)
     }
     assert(node.type == node.symbol?.type)
+
+    return node
   }
 
-  public func visit(_ node: Binary) throws {
+  public func transform(_ node: Binary) throws -> Node {
     // Reify the type of the node.
     node.type = node.type.map {
       solution.reify(type: $0, in: context, skipping: &visited)
     }
-    try traverse(node)
+
+    node.op = try transform(node.op) as! Ident
+    node.left = try transform(node.left) as! Expr
+    node.right = try transform(node.right) as! Expr
+    return node
   }
 
-  public func visit(_ node: Unary) throws {
+  public func transform(_ node: Unary) throws -> Node {
     // Reify the type of the node.
     node.type = node.type.map {
       solution.reify(type: $0, in: context, skipping: &visited)
     }
-    try traverse(node)
+
+    node.op = try transform(node.op) as! Ident
+    node.operand = try transform(node.operand) as! Expr
+    return node
   }
 
-  public func visit(_ node: Call) throws {
+  public func transform(_ node: Call) throws -> Node {
     // Reify the type of the node.
     node.type = node.type.map {
       solution.reify(type: $0, in: context, skipping: &visited)
     }
-    try traverse(node)
 
-    // TODO: Disambiguise named tuple expressions.
+    // If the node doesn't have a function type, then it's likely to be a named tuple.
+    if !(node.type is FunctionType) {
+      guard let ident = node.callee as? Ident
+        else { fatalError("Invalid AST") }
+
+      let elements = node.arguments.map({ (arg: Arg) -> TupleElem in
+        let elem = TupleElem(
+          label: arg.label, value: arg.value, module: arg.module, range: arg.range)
+        elem.type = arg.type
+        return elem
+      })
+
+      let tuple = Tuple(
+        label: ident.name, elements: elements, module: node.module, range: node.range)
+      tuple.type = node.type
+      return try transform(tuple)
+    }
+
+    node.callee = try transform(node.callee) as! Expr
+    node.arguments = try node.arguments.map(transform) as! [Arg]
+    return node
   }
 
-  public func visit(_ node: Arg) throws {
+  public func transform(_ node: Arg) throws -> Node {
     // Reify the type of the node.
     node.type = node.type.map {
       solution.reify(type: $0, in: context, skipping: &visited)
     }
-    try traverse(node)
+
+    node.value = try transform(node.value) as! Expr
+    return node
   }
 
-  public func visit(_ node: Tuple) throws {
+  public func transform(_ node: Tuple) throws -> Node {
     // Reify the type of the node.
     node.type = node.type.map {
       solution.reify(type: $0, in: context, skipping: &visited)
     }
-    try traverse(node)
+
+    node.elements = try node.elements.map(transform) as! [TupleElem]
+    return node
   }
 
-  public func visit(_ node: TupleElem) throws {
+  public func transform(_ node: TupleElem) throws -> Node {
     // Reify the type of the node.
     node.type = node.type.map {
       solution.reify(type: $0, in: context, skipping: &visited)
     }
-    try traverse(node)
+
+    node.value = try transform(node.value) as! Expr
+    return node
   }
 
-  public func visit(_ node: Ident) throws {
+  public func transform(_ node: Select) throws -> Node {
+    // Reify the type of the node.
+    node.type = node.type.map {
+      solution.reify(type: $0, in: context, skipping: &visited)
+    }
+
+    node.owner = try transform(node.owner) as! Expr
+    node.ownee = try transform(node.ownee) as! Ident
+    return node
+  }
+
+  public func transform(_ node: Ident) throws -> Node {
     // Reify the type of the node.
     node.type = node.type.map {
       solution.reify(type: $0, in: context, skipping: &visited)
@@ -200,6 +254,8 @@ public final class Dispatcher: ASTVisitor, SAPass {
     let symbol = choices[0]
     node.symbol = symbol
     assert(node.type == node.symbol?.type)
+
+    return node
   }
 
   private func reifyScopeSymbols(of scope: Scope) {
