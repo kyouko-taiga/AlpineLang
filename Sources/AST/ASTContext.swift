@@ -8,6 +8,9 @@ public final class ASTContext {
 
   // MARK: Modules
 
+  /// The loaded modules in the context.
+  public var modules: [Module] = []
+
   // MARK: Types
 
   /// The type constraints that haven't been solved yet.

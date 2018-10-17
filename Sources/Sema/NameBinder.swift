@@ -164,14 +164,27 @@ public final class NameBinder: ASTVisitor, SAPass {
   }
 
   private func findScope(declaring name: String) -> Scope? {
-    let candidates = scopes.reversed()
-    if let index = candidates.index(where: { $0.symbols[name] != nil }) {
+    // Search in the scopes of current module first.
+    if let index = scopes.index(where: { $0.symbols[name] != nil }) {
       return scopes[index]
-    } else if builtinScope.symbols[name] != nil {
-      return builtinScope
-    } else {
-      return nil
     }
+
+    // If the symbol can't be found in the current module, search in the loaded ones. Note that we
+    // search in the reverse order the modules were loaded, meaning that a module may shadow the
+    // symbols of another module, loaded earlier.
+    for module in context.modules.reversed() {
+      if module.innerScope?.symbols[name] != nil {
+        return module.innerScope!
+      }
+    }
+
+    // If the symbol can't be found in any of the loaded modules, search in the built-in scope.
+    if builtinScope.symbols[name] != nil {
+      return builtinScope
+    }
+
+    // The symbol does not exist in any of the reachable scopes.
+    return nil
   }
 
   private func unaryFuncType(operand: BuiltinType, codomain: BuiltinType) -> FunctionType {
