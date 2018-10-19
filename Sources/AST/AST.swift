@@ -403,7 +403,21 @@ public final class TupleElem: Expr {
 /// A select expression.
 public final class Select: Expr {
 
-  public init(owner: Expr, ownee: Ident, module: Module, range: SourceRange) {
+  public enum Ownee: CustomStringConvertible {
+
+    case label(String)
+    case index(Int)
+
+    public var description: String {
+      switch self {
+      case .label(let label): return label
+      case .index(let index): return index.description
+      }
+    }
+
+  }
+
+  public init(owner: Expr, ownee: Ownee, module: Module, range: SourceRange) {
     self.owner = owner
     self.ownee = ownee
     super.init(module: module, range: range)
@@ -412,7 +426,7 @@ public final class Select: Expr {
   /// The owner.
   public var owner: Expr
   /// The ownee.
-  public var ownee: Ident
+  public var ownee: Ownee
 
 }
 

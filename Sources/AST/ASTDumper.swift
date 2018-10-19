@@ -264,9 +264,7 @@ public final class ASTDumper<OutputStream>: ASTVisitor where OutputStream: TextO
       self <<< "\n" <<< indent <<< "(owner\n"
       withIndentation { try visit(node.owner) }
       self <<< ")"
-      self <<< "\n" <<< indent <<< "(ownee\n"
-      withIndentation { visit(node.ownee) }
-      self <<< ")"
+      self <<< "\n" <<< indent <<< "(ownee '\(node.ownee)')"
     }
     self <<< ")"
   }

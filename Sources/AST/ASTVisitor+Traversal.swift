@@ -195,7 +195,6 @@ public extension ASTVisitor {
 
   func traverse(_ node: Select) throws {
     try visit(node.owner)
-    try visit(node.ownee)
   }
 
   func visit(_ node: Ident) {

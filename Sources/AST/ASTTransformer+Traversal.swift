@@ -139,7 +139,6 @@ public extension ASTTransformer {
 
   func transform(_ node: Select) throws -> Node {
     node.owner = try transform(node.owner) as! Expr
-    node.ownee = try transform(node.ownee) as! Ident
     return node
   }
 

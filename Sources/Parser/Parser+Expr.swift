@@ -141,16 +141,18 @@ extension Parser {
       let backtrackPosition = streamPosition
       if consume(.dot, afterMany: .newline) != nil {
         // Although it wouldn't make the grammar ambiguous otherwise, notice that we require the
-        // selected identifier to be on the same line.
-        guard peek().kind == .identifier
+        // selected identifier or index to be on the same line.
+        guard let owneeToken = consume(.identifier) ?? consume(.integer)
           else { throw parseFailure(.expectedMember) }
+        let ownee = owneeToken.kind == .identifier
+          ? Select.Ownee.label(owneeToken.value!)
+          : Select.Ownee.index(Int(owneeToken.value!)!)
 
-        let ident = try parseIdent()
         expression = Select(
           owner: expression,
-          ownee: ident,
+          ownee: ownee,
           module: module,
-          range: SourceRange(from: expression.range.start, to: ident.range.end))
+          range: SourceRange(from: expression.range.start, to: owneeToken.range.end))
         continue trailer
       }
 
