@@ -1,7 +1,7 @@
 import AST
 import Utils
 
-/// Transform that applies a type solution to an untyped AST.
+/// Transformer that applies a type solution to an untyped AST.
 ///
 /// This pass is responsible to finalize the AST typing. It does so by:
 /// * Reifying the type of each node, according to the solution it is provided with.
@@ -229,9 +229,17 @@ public final class Dispatcher: ASTTransformer {
       choices.append(contentsOf: (scope!.symbols[node.name] ?? []))
       scope = scope?.parent
     }
+
+    // In case there are multiple candidates, look for one that matches the node's type.
+    choices = choices.filter { $0.type == node.type }
     assert(choices.count > 0)
 
-    // TODO: Disambiguise when there are several choices.
+    guard choices.count == 1 else {
+      // If there are still mutiple candidates, the program is ambiguous.
+      context.add(error: SAError.ambiguousCall(identifier: node, choices: choices), on: node)
+      return node
+    }
+
     let symbol = choices[0]
     node.symbol = symbol
     assert(node.type == node.symbol?.type)
