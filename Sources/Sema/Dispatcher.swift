@@ -212,7 +212,6 @@ public final class Dispatcher: ASTTransformer {
     }
 
     node.owner = try transform(node.owner) as! Expr
-    node.ownee = try transform(node.ownee) as! Ident
     return node
   }
 
@@ -236,7 +235,7 @@ public final class Dispatcher: ASTTransformer {
 
     guard choices.count == 1 else {
       // If there are still mutiple candidates, the program is ambiguous.
-      context.add(error: SAError.ambiguousCall(identifier: node, choices: choices), on: node)
+      context.add(error: SAError.ambiguousIdentifier(identifier: node, choices: choices), on: node)
       return node
     }
 
