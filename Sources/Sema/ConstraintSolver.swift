@@ -205,7 +205,7 @@ public struct ConstraintSolver {
         constraints.append(Constraint(
           kind: constraint.kind,
           types: (elements.0.type, elements.1.type),
-          location: constraint.location + ConstraintPath.element(i)))
+          location: constraint.location + .elementIndex(i)))
       }
       return .success
 
@@ -222,9 +222,8 @@ public struct ConstraintSolver {
     }
   }
 
-  /// Attempts to solve `T[.name] ~= U`.
+  /// Attempts to solve `T[.ownee] ~= U`.
   private mutating func solve(member constraint: Constraint) -> TypeMatchResult {
-    // Search a member (i.e. element) named `member` in the owner's type.
     let owner = assumptions.substitution(for: constraint.types!.t)
     switch owner {
     case is TypeVariable:
@@ -233,9 +232,22 @@ public struct ConstraintSolver {
       return .success
 
     case let tupleType as TupleType:
-      guard let member = tupleType.elements.first(where: { $0.label == constraint.member! })
-        else { return .failure }
-      constraints.append(.equality(t: constraint.types!.u, u: member.type, at: constraint.location))
+      // Look for the member corresponding to `ownee`.
+      let element: TupleTypeElem?
+      switch constraint.member! {
+      case .label(let label):
+        element = tupleType.elements.first(where: { $0.label == label })
+        guard element != nil
+          else { return .failure }
+      case .index(let index):
+        guard index < tupleType.elements.count
+          else { return .failure }
+        element = tupleType.elements[index]
+      }
+
+      // Break the constraint.
+      constraints.append(
+        .equality(t: constraint.types!.u, u: element!.type, at: constraint.location))
       return .success
 
     default:

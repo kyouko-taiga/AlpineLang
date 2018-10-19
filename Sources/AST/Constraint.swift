@@ -8,8 +8,8 @@ public enum ConstraintKind: Int {
   /// A cnformance constraint `T <= U` that requires `T` to be identical to or element of `U`.
   case conformance = 8
 
-  /// A member constraint `T[.name] ~= U` that requires `T` to have a member `name` whose type
-  /// matches `U`.
+  /// A member constraint `T[.ownee] ~= U` that requires `T` to be a tuple with a member identified
+  // by `ownee` and whose type matches `U`.
   case member = 4
 
   /// A disjunction of constraints
@@ -37,7 +37,9 @@ public enum ConstraintPath: Equatable {
   /// An identifier.
   case identifier
   /// The i-th element of a tuple.
-  case element(Int)
+  case elementIndex(Int)
+  /// The labeled element of a tuple.
+  case elementLabel(String)
   /// The i-th pattern of a match expression.
   case matchPattern(Int)
   /// The ownee of a select expression.
@@ -60,7 +62,7 @@ public struct Constraint {
   public init(
     kind: ConstraintKind,
     types: (t: TypeBase, u: TypeBase)? = nil,
-    member: String? = nil,
+    member: Select.Ownee? = nil,
     choices: [Constraint] = [],
     location: ConstraintLocation)
   {
@@ -88,7 +90,7 @@ public struct Constraint {
   /// Creates a member constraint.
   public static func member(
     t: TypeBase,
-    member: String,
+    member: Select.Ownee,
     u: TypeBase,
     at location: ConstraintLocation) -> Constraint
   {
@@ -108,8 +110,8 @@ public struct Constraint {
   public let location: ConstraintLocation
   /// The types `T` and `U` of a match-relation constraint.
   public let types: (t: TypeBase, u: TypeBase)?
-  /// The name in `T[.name]` of a member constraint.
-  public let member: String?
+  /// The ownee in `T[.ownee]` of a member constraint.
+  public let member: Select.Ownee?
   /// The choices of a disjunction constraint.
   public let choices: [Constraint]
 

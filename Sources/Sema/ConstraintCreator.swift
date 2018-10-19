@@ -90,55 +90,12 @@ public final class ConstraintCreator: ASTVisitor, SAPass {
     node.type = node.value.type
   }
 
-  public func visit(_ node: Binary) throws {
-    // A binary expression is the same as a call expression. Therefore its type should be infered in
-    // a similar fashion.
-    let domain = context.getTupleType(
-      label: nil,
-      elements: [
-        TupleTypeElem(label: nil, type: TypeVariable()),
-        TupleTypeElem(label: nil, type: TypeVariable()),
-      ])
-
-    try visit(node.left)
-    context.add(constraint: .conformance(
-      t: node.left.type!,
-      u: domain.elements[0].type,
-      at: .location(node, .tuple) + .element(0)))
-
-    try visit(node.right)
-    context.add(constraint: .conformance(
-      t: node.right.type!,
-      u: domain.elements[1].type,
-      at: .location(node, .tuple) + .element(1)))
-
-    node.type = TypeVariable()
-    let funcType = context.getFunctionType(from: domain, to: node.type!)
-
-    try visit(node.op)
-    context.add(
-      constraint: .equality(t: node.op.type!, u: funcType, at: .location(node, .call)))
+  public func visit(_ node: Binary) {
+    fatalError("AST not normalized, did you forget to apply the normalizer?")
   }
 
-  public func visit(_ node: Unary) throws {
-    // An unary expression is the same as a call expression. Therefore its type should be infered in
-    // a similar fashion.
-    let domain = context.getTupleType(
-      label: nil,
-      elements: [TupleTypeElem(label: nil, type: TypeVariable())])
-
-    try visit(node.operand)
-    context.add(constraint: .conformance(
-      t: node.operand.type!,
-      u: domain.elements[0].type,
-      at: .location(node, .tuple) + .element(0)))
-
-    node.type = TypeVariable()
-    let funcType = context.getFunctionType(from: domain, to: node.type!)
-
-    try visit(node.op)
-    context.add(
-      constraint: .equality(t: node.op.type!, u: funcType, at: .location(node, .call)))
+  public func visit(_ node: Unary) {
+    fatalError("AST not normalized, did you forget to apply the normalizer?")
   }
 
   public func visit(_ node: Call) throws {
@@ -146,8 +103,8 @@ public final class ConstraintCreator: ASTVisitor, SAPass {
     let elements = node.arguments.map { TupleTypeElem(label: $0.label, type: TypeVariable()) }
     for (i, (arg, elem)) in zip(node.arguments, elements).enumerated() {
       try visit(arg)
-      context.add(
-        constraint: .conformance(t: arg.type!, u: elem.type, at: .location(node, .tuple) + .element(i)))
+      context.add(constraint:
+        .conformance(t: arg.type!, u: elem.type, at: .location(node, .tuple) + .elementIndex(i)))
     }
 
     // Build the supposed type of the callee.
@@ -177,6 +134,23 @@ public final class ConstraintCreator: ASTVisitor, SAPass {
   public func visit(_ node: TupleElem) throws {
     try visit(node.value)
     node.type = node.value.type
+  }
+
+  public func visit(_ node: Select) throws {
+    try visit(node.owner)
+
+    // The type of the node itself has to be inferred from the context.
+    node.type = TypeVariable()
+
+    let path: ConstraintPath
+    switch node.ownee {
+    case .label(let label):
+      path = .elementLabel(label)
+    case .index(let index):
+      path = .elementIndex(index)
+    }
+    context.add(constraint:
+      .member(t: node.owner.type!, member: node.ownee, u: node.type!, at: .location(node, path)))
   }
 
   public func visit(_ node: Ident) throws {
