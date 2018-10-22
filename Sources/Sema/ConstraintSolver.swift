@@ -196,6 +196,7 @@ public struct ConstraintSolver {
     case (let tl as TupleType, let tr as TupleType):
       // Tuple types never match if they have different lenghts or labels.
       guard
+        tl.label == tr.label,
         tl.elements.count == tr.elements.count,
         zip(tl.elements, tr.elements).all(satisfy: { $0.0.label == $0.1.label }) else
       { return .failure }

@@ -127,7 +127,7 @@ public final class ConstraintCreator: ASTVisitor, SAPass {
       try visit(elem)
     }
     node.type = context.getTupleType(
-      label: nil,
+      label: node.label,
       elements: node.elements.map { TupleTypeElem(label: $0.label, type: $0.type!) })
   }
 
