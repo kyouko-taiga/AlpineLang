@@ -96,6 +96,7 @@ public final class ASTDumper<OutputStream>: ASTVisitor where OutputStream: TextO
   public func visit(_ node: TupleSignElem) throws {
     self <<< indent <<< "(tuple_sign_elem"
     self <<< " '" <<< node.label <<< "'"
+    self <<< " '" <<< node.name <<< "'"
     withIndentation {
       self <<< "\n" <<< indent <<< "(signature\n"
       withIndentation { try visit(node.signature) }

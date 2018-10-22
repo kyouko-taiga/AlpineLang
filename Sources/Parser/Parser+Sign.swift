@@ -46,7 +46,10 @@ extension Parser {
         // If the parsed signature is a type identifier, we may have in fact parsed the label of a
         // tuple element, in which case we should backtrack.
         consumeNewlines()
-        if (enclosed is TypeIdent) && (peek().kind == .colon) {
+        let next = peek().kind
+        if next == .comma {
+          rewind(to: backtrackPosition)
+        } else if (enclosed is TypeIdent) && ((next == .colon) || (next == .identifier)) {
           rewind(to: backtrackPosition)
         } else if let end = consume(.rightParen)?.range.end {
           enclosed.range = SourceRange(from: start, to: end)
@@ -117,12 +120,20 @@ extension Parser {
       else { throw unexpectedToken(expected: ")") }
 
     // Make sure there isn't any duplicate key.
-    let duplicates = elements
+    let duplicateLabels = elements
       .filter     { $0.label != nil }
       .duplicates { $0.label ?? "_" }
-    guard duplicates.isEmpty else {
-      let element = duplicates.first!
+    guard duplicateLabels.isEmpty else {
+      let element = duplicateLabels.first!
       throw ParseError(.duplicateLabel(label: element.label!), range: element.range)
+    }
+
+    let duplicateNames = elements
+      .filter     { $0.name != nil }
+      .duplicates { $0.name ?? "_" }
+    guard duplicateNames.isEmpty else {
+      let element = duplicateNames.first!
+      throw ParseError(.duplicateName(name: element.name!), range: element.range)
     }
 
     return TupleSign(
@@ -134,23 +145,56 @@ extension Parser {
 
   /// Parses a tuple element signature.
   func parseTupleElemSign() throws -> TupleSignElem {
-    // Parse the label of the element.
-    guard let label = consume(.identifier) ?? consume(.underscore)
-      else { throw parseFailure(.expectedIdentifier) }
 
-    // Consume the colon delimiting the label and its type.
-    guard consume(.colon, afterMany: .newline) != nil
-      else { throw unexpectedToken(expected: "colon") }
+    // Note: Tuple element signatures are a bit tricky to parse, as they have various syntaxes. They
+    // can be defined with a label and/or a name plus a signature, or with a signature, without any
+    // label. Since an identifier could be parsed as a type identifier, we first need to identify
+    // whether the first identifier(s) we encounter are part of the API or the signature.
 
-    // Parse the type signature of the element.
-    consumeNewlines()
+    let backtrackPosition = streamPosition
+    if let first = consume(.underscore) ?? consume(.identifier) {
+      // If we could parse a first identifier, there might be a formal name as well.
+      if let second = consume(.identifier, afterMany: .newline) {
+        // Parsing two names (or `_` + a name) means both must be part of the API. Hence the next
+        // tokens should be a colon followed by the signature of the element.
+        guard consume(.colon, afterMany: .newline) != nil
+          else { throw unexpectedToken(expected: ":") }
+        consumeNewlines()
+        let signature = try parseSign()
+
+        return TupleSignElem(
+          label: (first.kind == .identifier) ? first.value : nil,
+          name: second.value,
+          signature: signature,
+          module: module,
+          range: SourceRange(from: first.range.start, to: signature.range.end))
+      } else if consume(.colon, afterMany: .newline) != nil {
+        // Parsing a name + a colon means it was part of the API. Hence the next tokens must
+        // represent the signature of the element.
+        consumeNewlines()
+        let signature = try parseSign()
+
+        return TupleSignElem(
+          label: (first.kind == .identifier) ? first.value : nil,
+          name: (first.kind == .identifier) ? first.value : nil,
+          signature: signature,
+          module: module,
+          range: SourceRange(from: first.range.start, to: signature.range.end))
+      } else {
+        // We parsed a single name, but failed to parse colons, so we should go back and parse the
+        // name as a type identifier instead.
+        rewind(to: backtrackPosition)
+      }
+    }
+
+    // We failed to parse an API, so the element must be made of a type signature only.
     let signature = try parseSign()
-
     return TupleSignElem(
-      label: label.kind == .identifier ? label.value : nil,
+      label: nil,
+      name: nil,
       signature: signature,
       module: module,
-      range: SourceRange(from: label.range.start, to: signature.range.end))
+      range: signature.range)
   }
 
   /// Parses a type identifier.

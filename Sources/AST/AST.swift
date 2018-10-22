@@ -168,14 +168,23 @@ public final class TupleSign: TypeSign {
 /// A tuple element signature.
 public final class TupleSignElem: Node {
 
-  public init(label: String?, signature: TypeSign, module: Module, range: SourceRange) {
+  public init(
+    label: String?,
+    name: String?,
+    signature: TypeSign,
+    module: Module,
+    range: SourceRange)
+  {
     self.label = label
+    self.name = name
     self.signature = signature
     super.init(module: module, range: range)
   }
 
   /// The label of the tuple element.
   public var label: String?
+  /// The name of the tuple element (for function domains only).
+  public var name: String?
   /// The signature of the tuple element.
   public var signature: TypeSign
 

@@ -61,8 +61,8 @@ public final class SymbolCreator: ASTVisitor, SAPass {
       let param = TupleTypeElem(label: element.label, type: TypeVariable())
       parameters.append(param)
 
-      if let label = element.label {
-        innerScope.create(name: label, type: param.type)
+      if let name = element.name {
+        innerScope.create(name: name, type: param.type)
       }
       try visit(element.signature)
     }

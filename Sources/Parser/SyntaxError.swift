@@ -2,8 +2,10 @@ import AST
 
 public enum SyntaxError: Error, CustomStringConvertible {
 
-  /// Occurs when parsing tuple values or signatures with duplicate keys.
+  /// Occurs when parsing tuple values or signatures with duplicate labels.
   case duplicateLabel(label: String)
+  /// Occurs when parsing tuple signatures with duplicate names.
+  case duplicateName(name: String)
   /// Occurs when parsing empty tuple values or signatures.
   case emptyTuple
   /// Occurs when the parser fails to parse an identifier.
@@ -23,6 +25,8 @@ public enum SyntaxError: Error, CustomStringConvertible {
     switch self {
     case .duplicateLabel(let label):
       return "duplicate label '\(label)'"
+    case .duplicateName(let name):
+      return "duplicate name '\(name)'"
     case .emptyTuple:
       return "empty tuple"
     case .expectedIdentifier:

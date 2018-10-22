@@ -8,8 +8,21 @@ extension Parser {
     guard let start = consume(.func)?.range.start
       else { throw unexpectedToken(expected: "func") }
 
-    // Parse the optional name of the function.
-    let name = consume(.identifier, afterMany: .newline)?.value
+    // Parse the optional name of operator of the function.
+    let name: String?
+    let backtrackPosition = streamPosition
+    consumeNewlines()
+    switch peek() {
+    case let token where token.isPrefixOperator:
+      name = consume()!.asPrefixOperator?.description
+    case let token where token.isInfixOperator:
+      name = consume()!.asInfixOperator?.description
+    case let token where token.kind == .identifier:
+      name = consume()!.value
+    default:
+      rewind(to: backtrackPosition)
+      name = nil
+    }
 
     // Parse the signature of the function.
     consumeNewlines()

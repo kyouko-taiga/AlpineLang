@@ -97,7 +97,7 @@ extension Parser {
         // If the parsed expression is an identifier, we may have in fact parsed the label of a
         // tuple element, in which case we should backtrack.
         consumeNewlines()
-        if (enclosed is Ident) && (peek().kind == .colon) {
+        if (peek().kind == .comma) || (enclosed is Ident) && (peek().kind == .colon) {
           rewind(to: backtrackPosition)
           expression = try parseTuple()
         } else if let end = consume(.rightParen)?.range.end {
@@ -226,7 +226,7 @@ extension Parser {
     // Make sure there's at least one match case to parse.
     consumeNewlines()
     guard peek().kind == .with
-      else { throw unexpectedToken(expected: "match") }
+      else { throw unexpectedToken(expected: "with") }
 
     // Parse the match cases.
     var cases: [MatchCase] = []
