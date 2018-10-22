@@ -3,7 +3,7 @@ import Foundation
 import AST
 import Utils
 
-/// Lexer for the tokens of the Anzen language.
+/// Lexer for the tokens of the Alpine language.
 public struct Lexer {
 
   public init(source: TextInputBuffer) throws {

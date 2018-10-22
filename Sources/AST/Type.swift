@@ -1,4 +1,4 @@
-/// Base class for all types in Anzen.
+/// Base class for all types in Alpine.
 public class TypeBase: Hashable, CustomStringConvertible {
 
   fileprivate init() {}
