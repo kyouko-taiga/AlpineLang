@@ -13,7 +13,7 @@ public enum Value {
   /// A built-in function.
   case builtinFunction(([Any]) -> Any)
   /// A user function.
-  case function(Func, closure: [Symbol: Value])
+  case function(Func, closure: EvaluationContext)
   /// A tuple.
   case tuple(label: String?, elements: [(label: String?, value: Value)])
 

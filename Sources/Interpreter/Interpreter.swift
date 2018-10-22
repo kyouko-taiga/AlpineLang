@@ -48,7 +48,7 @@ public struct Interpreter {
 
   public func eval(expression: Expr) -> Value {
     // Initialize an evaluation context with top-level symbols from built-in and loaded modules.
-    var evalContext: [Symbol: Value] = [:]
+    let evalContext: EvaluationContext = [:]
     for (symbol, function) in astContext.builtinScope.semantics {
       evalContext[symbol] = .builtinFunction(function)
     }
@@ -63,8 +63,9 @@ public struct Interpreter {
     return eval(expression, in: evalContext)
   }
 
-  private func eval(_ expr: Expr, in evalContext: [Symbol: Value]) -> Value {
+  private func eval(_ expr: Expr, in evalContext: EvaluationContext) -> Value {
     switch expr {
+    case let e as Func          : return eval(e, in: evalContext)
     case let e as If            : return eval(e, in: evalContext)
     case let e as Call          : return eval(e, in: evalContext)
     case let e as Tuple         : return eval(e, in: evalContext)
@@ -79,7 +80,14 @@ public struct Interpreter {
     }
   }
 
-  public func eval(_ expr: If, in evalContext: [Symbol: Value]) -> Value {
+  public func eval(_ expr: Func, in evalContext: EvaluationContext) -> Value {
+    let closure = evalContext.copy
+    let value = Value.function(expr, closure: closure)
+    closure[expr.symbol!] = value
+    return value
+  }
+
+  public func eval(_ expr: If, in evalContext: EvaluationContext) -> Value {
     // Evaluate the condition.
     let condition = eval(expr.condition, in: evalContext)
     guard case .bool(let value) = condition
@@ -91,7 +99,7 @@ public struct Interpreter {
       : eval(expr.elseExpr, in: evalContext)
   }
 
-  public func eval(_ expr: Call, in evalContext: [Symbol: Value]) -> Value {
+  public func eval(_ expr: Call, in evalContext: EvaluationContext) -> Value {
     // Evaluate the callee and its arguments.
     let callee = eval(expr.callee, in: evalContext)
     let arguments = expr.arguments.map { eval($0.value, in: evalContext) }
@@ -104,7 +112,7 @@ public struct Interpreter {
 
     case .function(let function, let closure):
       // Update the evaluation context with the function's arguments.
-      var funcContext = evalContext.merging(closure) { _, rhs in rhs }
+      let funcContext = evalContext.merging(closure) { _, rhs in rhs }
       for (parameter, argument) in zip(function.signature.domain.elements, arguments) {
         if let name = parameter.name {
           let symbols = function.innerScope!.symbols[name]!
@@ -121,13 +129,13 @@ public struct Interpreter {
     }
   }
 
-  public func eval(_ expr: Tuple, in evalContext: [Symbol: Value]) -> Value {
+  public func eval(_ expr: Tuple, in evalContext: EvaluationContext) -> Value {
     // Evaluate the tuple's elements.
     let elements = expr.elements.map { (label: $0.label, value: eval($0.value, in: evalContext)) }
     return .tuple(label: expr.label, elements: elements)
   }
 
-  public func eval(_ expr: Select, in evalContext: [Symbol: Value]) -> Value {
+  public func eval(_ expr: Select, in evalContext: EvaluationContext) -> Value {
     // Evaluate the owner.
     let owner = eval(expr.owner, in: evalContext)
     guard case .tuple(label: _, let elements) = owner
@@ -146,7 +154,7 @@ public struct Interpreter {
     }
   }
 
-  public func eval(_ expr: Ident, in evalContext: [Symbol: Value]) -> Value {
+  public func eval(_ expr: Ident, in evalContext: EvaluationContext) -> Value {
     guard let sym = expr.symbol
       else { fatalError("invalid expression: missing symbol") }
 
