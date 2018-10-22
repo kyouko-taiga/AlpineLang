@@ -27,6 +27,7 @@ extension Parser {
       let opIdent = Ident(name: opInfix.description, module: module, range: opToken.range)
 
       // If an infix operator could be consumed, then we MUST parse a right operand.
+      consumeNewlines()
       let rightOperand = try parseAtom()
 
       // If the left operand is a binary expression, we should check the precedence of its operator
