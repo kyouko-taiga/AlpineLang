@@ -105,9 +105,9 @@ public struct ConstraintSolver {
     return .success(solution: assumptions)
   }
 
-  /// Attempts to match `T` and `U`, effectively solving a given constraint between those types.
+  /// Attempts to match `t` and `u`, effectively solving a given constraint between those types.
   private mutating func solve(match constraint: Constraint) -> TypeMatchResult {
-    // Get the substitutions we already inferred for `T` and `U` if they are type variables.
+    // Get the substitutions we already inferred for `t` and `u` if they are type variables.
     let a = assumptions.substitution(for: constraint.types!.t)
     let b = assumptions.substitution(for: constraint.types!.u)
 
@@ -117,26 +117,24 @@ public struct ConstraintSolver {
     switch (a, b) {
     case (let var_ as TypeVariable, _):
       if constraint.kind == .conformance && b is TypeVariable {
-        // If both `T` and `U` are unknown, we can't solve the conformance constraint yet.
+        // If both `t` and `u` are unknown, we can't solve the conformance constraint yet.
         constraints.insert(constraint, at: 0)
         return .success
       }
 
-      // ASSUMPTION: Even in the case of a conformance match, we can unify `T` with `U` if the
-      // former's unknown, as any constraint that would require `T > U` would leave to an invalid
-      // program. In other words, we assume `T = join(T, U)` if `T` is a type variable. If this
-      // assumption's proved wrong, we'll have to actually compute the "join" of `T` and `U`, using
-      // `U` as the upper bound.
+      // ASSUMPTION: Even in the case of a conformance match, we can unify `t` with `u` if the
+      // former's unknown, as any constraint that would require `t > u` would leave to an invalid
+      // program. In other words, we assume `t = join(t, u)` if `t` is a type variable. If this
+      // assumption's proved wrong, we'll have to actually compute the "join" of `t` and `u`, using
+      // `u` as the upper bound.
       assumptions.set(substitution: b, for: var_)
       return .success
 
     case (_, let var_ as TypeVariable):
       if constraint.kind == .conformance {
         // ASSUMPTION: If only the right type of a conformance match is unknown, we unify it with
-        // the left side on the assumption that `U` should already have been unified with a larger
-        // type if it had to. If this assumption's proved wrong, we'll have to create an equality
-        // constraint that could match the left type with a union that contains it, as well as
-        // what's still unknown at this point.
+        // the left side on the assumption that `u` should already already been been unified with a
+        // union type otherwise.
         assumptions.set(substitution: a, for: var_)
         return .success
       }
@@ -160,21 +158,21 @@ public struct ConstraintSolver {
         return .success
       }
 
-      // Obviously, an equality constraint can't be solved if the `T` isn't a union.
+      // Obviously, an equality constraint can't be solved if the `t` isn't a union.
       guard constraint.kind == .conformance
         else { return .failure }
 
       if cases.contains(a) {
-        // The conformance succeeds if `T` is member of `U`.
+        // The conformance succeeds if `t` is member of `u`.
         return .success
 
-        // IDEA: Note that solving a conformance with `U` being a union doesn't add any information
-        // to our assumptions. However, if `U` isn't fully inferred (i.e. still contains unknown
+        // IDEA: Note that solving a conformance with `u` being a union doesn't add any information
+        // to our assumptions. However, if `u` isn't fully inferred (i.e. still contains unknown
         // types), we may be able to use such conformance constraints to infer some of the missing
         // information.
       }
 
-      // If we can't find `T` in `U`, it might be that `U` contains types that aren't reified or
+      // If we can't find `t` in `u`, it might be that `u` contains types that aren't reified or
       // fully infered yet. Hence we should break the constraint into a disjunction of conformances
       // for each case of the union.
       let choices = union.cases.map { Constraint.conformance(t: a, u: $0, at: constraint.location) }
@@ -223,7 +221,7 @@ public struct ConstraintSolver {
     }
   }
 
-  /// Attempts to solve `T[.ownee] ~= U`.
+  /// Attempts to solve `t[.ownee] ~= u`.
   private mutating func solve(member constraint: Constraint) -> TypeMatchResult {
     let owner = assumptions.substitution(for: constraint.types!.t)
     switch owner {

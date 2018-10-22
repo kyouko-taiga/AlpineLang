@@ -19,7 +19,6 @@ public final class SymbolCreator: ASTVisitor, SAPass {
   public let context: ASTContext
   /// A stack of scopes used to determine in which one a new symbol should be created.
   private var scopes: Stack<Scope> = []
-
   /// The error symbol.
   private var errorSymbol: Symbol?
 

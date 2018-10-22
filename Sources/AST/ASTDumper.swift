@@ -156,7 +156,6 @@ public final class ASTDumper<OutputStream>: ASTVisitor where OutputStream: TextO
 
   public func visit(_ node: MatchCase) throws {
     self <<< indent <<< "(match_case"
-    self <<< " type='" <<< node.type <<< "'"
     self <<< " inner_scope='" <<< node.innerScope <<< "'"
     withIndentation {
       self <<< "\n" <<< indent <<< "(pattern\n"

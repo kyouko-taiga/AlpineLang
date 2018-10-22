@@ -1,7 +1,8 @@
 /// Base class for all types in Alpine.
 public class TypeBase: Hashable, CustomStringConvertible {
 
-  fileprivate init() {}
+  fileprivate init() {
+  }
 
   /// The metatype of the type.
   public lazy var metatype: Metatype = { [unowned self] in

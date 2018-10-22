@@ -258,7 +258,7 @@ public final class Match: Expr {
 }
 
 /// A match case.
-public final class MatchCase: Expr {
+public final class MatchCase: Node {
 
   public init(pattern: Expr, value: Expr, module: Module, range: SourceRange) {
     self.pattern = pattern

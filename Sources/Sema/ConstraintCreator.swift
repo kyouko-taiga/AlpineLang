@@ -47,47 +47,40 @@ public final class ConstraintCreator: ASTVisitor, SAPass {
     context.add(constraint:
       .equality(t: node.condition.type!, u: BuiltinType.bool, at: .location(node, .condition)))
 
-    // Both the then and else expressions must have a type compatible with that of the entire
-    // conditional expression, which is unknown at this point. Note however that both branches may
-    // have unrelated types, as long as those are covariant to that of the expression itself.
-    node.type = TypeVariable()
+    // Infer the type constraints of both branches.
     try visit(node.thenExpr)
-    context.add(constraint:
-      .conformance(t: node.thenExpr.type!, u: node.type!, at: .location(node, .then)))
     try visit(node.elseExpr)
-    context.add(constraint:
-      .conformance(t: node.elseExpr.type!, u: node.type!, at: .location(node, .else)))
+
+    // Both branches may return different construtors, and therfore have different types. To cater
+    // for that, we type the node itself with a union of the two.
+    node.type = context.getUnionType(cases: [node.thenExpr.type!, node.elseExpr.type!])
   }
 
   public func visit(_ node: Match) throws {
     // First, we need to create the type constraints for the match subject.
     try visit(node.subject)
 
-    node.type = TypeVariable()
-    for (i, matchCase) in node.cases.enumerated() {
-      try visit(matchCase)
+    // Second, visit all cases to infer the respective type constraints.
+    try visit(node.cases)
 
-      // All match case patterns must be compatible with the match subject.
+    // Just as for conditional expressions, create the type of the match as the union of all
+    // branches, as each might be returning a different constructor, and would hence have a
+    // different type.
+    node.type = context.getUnionType(cases: Set(node.cases.map({ $0.value.type! })))
+
+    // Each case pattern should conform to the type of the subject.
+    for (i, matchCase) in node.cases.enumerated() {
       context.add(constraint: .conformance(
         t: matchCase.pattern.type!,
         u: node.subject.type!,
         at: .location(node, .matchPattern(i))))
-
-      // Just like for the case of conditional expressions, all match case must be compatible with
-      // the type of match expression itself, unknown at this point. Note that cases may have
-      // unrelated types, as long as those are covariant to that of the expression itself.
-      context.add(constraint: .conformance(
-        t: matchCase.type!,
-        u: node.type!,
-        at: .location(node, .matchValue(i))))
     }
-
   }
 
   public func visit(_ node: MatchCase) throws {
     try visit(node.pattern)
     try visit(node.value)
-    node.type = node.value.type
+    // node.type = node.value.type
   }
 
   public func visit(_ node: Binary) {
@@ -209,7 +202,7 @@ public final class ConstraintCreator: ASTVisitor, SAPass {
       }))
   }
 
-  private func read(signature: UnionSign) -> UnionType {
+  private func read(signature: UnionSign) -> TypeBase {
     return context.getUnionType(cases: Set(signature.cases.map({ read(signature: $0) })))
   }
 
