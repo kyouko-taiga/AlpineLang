@@ -160,31 +160,12 @@ public final class NameBinder: ASTVisitor, SAPass {
     }
 
     // If the symbol can't be found in any of the loaded modules, search in the built-in scope.
-    if builtinScope.symbols[name] != nil {
-      return builtinScope
+    if context.builtinScope.symbols[name] != nil {
+      return context.builtinScope
     }
 
     // The symbol does not exist in any of the reachable scopes.
     return nil
-  }
-
-  private func unaryFuncType(operand: BuiltinType, codomain: BuiltinType) -> FunctionType {
-    let domain = context.getTupleType(
-      label: nil,
-      elements: [TupleTypeElem(label: nil, type: operand)])
-    return context.getFunctionType(from: domain, to: codomain)
-  }
-
-  private func binaryFuncType(lhs: BuiltinType, rhs: BuiltinType, codomain: BuiltinType)
-    -> FunctionType
-  {
-    let domain = context.getTupleType(
-      label: nil,
-      elements: [
-        TupleTypeElem(label: nil, type: lhs),
-        TupleTypeElem(label: nil, type: rhs),
-      ])
-    return context.getFunctionType(from: domain, to: codomain)
   }
 
 }
