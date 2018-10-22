@@ -19,9 +19,6 @@ func excerpt(of range: SourceRange) -> String? {
 }
 
 func diagnose(error: LocatableError, in console: Console) {
-  // Log the error heading.
-  let errorLocation = error.range.map { "l.\($0.start.line):c.\($0.start.column)" } ?? ""
-
   // Determine the category and root cause of the error.
   var range = error.range
   let category: String
@@ -59,6 +56,7 @@ func diagnose(error: LocatableError, in console: Console) {
     cause = String(describing: error)
   }
 
+  let errorLocation = range.map { "l.\($0.start.line):c.\($0.start.column)" } ?? ""
   console.write("\(errorLocation): \(category): \(cause):\n")
 
   // Log the excerpt from the source, if available.
@@ -90,6 +88,24 @@ func resolve<C>(paths: C, node: Node) -> SourceRange
     guard let call = node as? Call
       else { unreachable("Invalid path '\(first)' for node '\(node)'") }
     return resolve(paths: paths.dropFirst(), node: call.callee)
+
+  case .else:
+    guard let expr = node as? If
+      else { unreachable("Invalid path '\(first)' for node '\(node)'") }
+    return resolve(paths: paths.dropFirst(), node: expr.elseExpr)
+
+  case .matchValue(let i):
+    guard let match = node as? Match, match.cases.count > i
+      else { unreachable("Invalid path '\(first)' for node '\(node)'") }
+    return resolve(paths: paths.dropFirst(), node: match.cases[i])
+
+  case .then:
+    guard let expr = node as? If
+      else { unreachable("Invalid path '\(first)' for node '\(node)'") }
+    return resolve(paths: paths.dropFirst(), node: expr.thenExpr)
+
+  case .identifier:
+    return node.range
 
   default:
     return node.range
