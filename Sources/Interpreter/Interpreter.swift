@@ -39,11 +39,14 @@ public struct Interpreter {
   public func eval(string input: String) throws -> Value {
     // Parse the epxression into an untyped AST.
     let parser = try Parser(source: input)
-    let untypedExpr = try parser.parseExpr()
+    let expr = try parser.parseExpr()
+
+    // Expressions can't be analyzed nor ran out-of-context, they must be nested in a module.
+    let module = Module(statements: [expr], range: expr.range)
 
     // Run semantic analysis to get the typed AST.
-    let typedExpr = try runSema(on: untypedExpr) as! Expr
-    return eval(expression: typedExpr)
+    let typedModule = try runSema(on: module) as! Module
+    return eval(expression: typedModule.statements[0] as! Expr)
   }
 
   public func eval(expression: Expr) -> Value {
@@ -67,6 +70,7 @@ public struct Interpreter {
     switch expr {
     case let e as Func          : return eval(e, in: evalContext)
     case let e as If            : return eval(e, in: evalContext)
+    case let e as Match         : return eval(e, in: evalContext)
     case let e as Call          : return eval(e, in: evalContext)
     case let e as Tuple         : return eval(e, in: evalContext)
     case let e as Select        : return eval(e, in: evalContext)
@@ -97,6 +101,71 @@ public struct Interpreter {
     return value
       ? eval(expr.thenExpr, in: evalContext)
       : eval(expr.elseExpr, in: evalContext)
+  }
+
+  public func eval(_ expr: Match, in evalContext: EvaluationContext) -> Value {
+    // Evaluate the subject of the match.
+    let subject = eval(expr.subject, in: evalContext)
+
+    // Find the first pattern that matches the subject, along with its optional bindings.
+    for matchCase in expr.cases {
+      if let matchContext = match(subject, with: matchCase.pattern, in: evalContext) {
+        return eval(matchCase.value, in: matchContext)
+      }
+    }
+
+    // TODO: Sanitizing should make sure there's always at least one matching case for any subject,
+    // or reject the program otherwise.
+    fatalError("no matching pattern")
+  }
+
+  func match(_ subject: Value, with pattern: Expr, in evalContext: EvaluationContext)
+    -> EvaluationContext?
+  {
+    switch pattern {
+    case let binding as LetBinding:
+      // TODO: Handle non-linear patterns.
+
+      // Matching a value with a new binding obvioulsy succeed.
+      let matchContext = evalContext.copy
+      matchContext[binding.symbol!] = subject
+      return matchContext
+
+    case let tuplePattern as Tuple:
+      guard case .tuple(let label, let elements) = subject
+        else { return nil }
+      guard (label == tuplePattern.label) && (elements.count == tuplePattern.elements.count)
+        else { return nil }
+
+      // Try merging each tuple element.
+      var matchContext = evalContext.copy
+      for (lhs, rhs) in zip(elements, tuplePattern.elements) {
+        guard lhs.label == rhs.label
+          else { return nil }
+        guard let subMatchContext = match(lhs.value, with: rhs.value, in: matchContext)
+          else { return nil }
+        matchContext = subMatchContext
+      }
+
+      return matchContext
+
+    default:
+      // If the pattern is any expression other than a let binding or a tuple, we evaluate it and
+      // use value equality to determine the result of the match.
+      let value = eval(pattern, in: evalContext)
+
+      // TODO: Semantic analysis should make sure there's an equality function between the subject
+      // and the pattern, or reject the program otherwise. The current implementation reject all
+      // values except native ones.
+      switch (subject, value) {
+      case (.bool(let lhs)  , .bool(let rhs))   : return lhs == rhs ? evalContext : nil
+      case (.int(let lhs)   , .int(let rhs))    : return lhs == rhs ? evalContext : nil
+      case (.real(let lhs)  , .real(let rhs))   : return lhs == rhs ? evalContext : nil
+      case (.string(let lhs), .string(let rhs)) : return lhs == rhs ? evalContext : nil
+      default:
+        return nil
+      }
+    }
   }
 
   public func eval(_ expr: Call, in evalContext: EvaluationContext) -> Value {
@@ -165,11 +234,12 @@ public struct Interpreter {
   }
 
   // Perform type inference on an untyped AST.
-  private func runSema(on untypedAST: Node) throws -> Node {
-    var ast = try normalizer.transform(untypedAST)
-    try symbolCreator.visit(ast)
-    try nameBinder.visit(ast)
-    try constraintCreator.visit(ast)
+  private func runSema(on module: Module) throws -> Node {
+    var ast = try normalizer.transform(module)
+
+    try symbolCreator.visit(module)
+    try nameBinder.visit(module)
+    try constraintCreator.visit(module)
 
     if debug {
       for constraint in astContext.typeConstraints {
@@ -184,7 +254,7 @@ public struct Interpreter {
     switch result {
     case .success(let solution):
       let dispatcher = Dispatcher(context: astContext, solution: solution)
-      ast = try dispatcher.transform(ast)
+      ast = try dispatcher.transform(module) as! Module
 
     case .failure(let errors):
       for error in errors {

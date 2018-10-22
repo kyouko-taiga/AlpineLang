@@ -2,39 +2,53 @@ import AST
 import Parser
 import Interpreter
 
-let input = """
-//func main () -> Nat :: #succ(#zero)
-
+let moduleText = """
 //type Pair :: (_: Int, _: Int)
 //func first_of(pair: Pair) -> Int :: pair.0
 
-//type Nat :: #zero or #succ(_: Nat)
-//
-//func + (_ lhs: Nat, _ rhs: Nat) -> Nat ::
-//  match (lhs, rhs)
-//    with (#zero, let x) :: x
-//    with (#succ(let x), let y) :: #succ(x + y)
+type List :: #empty or #cons(Int, List)
 
-func factorial (of x: Int) -> Int ::
-  if x <= 1
-    then 1
-    else x * factorial(of: x - 1)
+func filter (_ list: List, where predicate: (_: Int) -> Bool) -> List ::
+  match list
+    with #empty :: #empty
+    with #cons(let head, let tail) ::
+    if predicate(head)
+      then #cons(head, filter(tail, where: predicate))
+      else filter(tail, where: predicate)
+
+func + (_ lhs: List, _ rhs: List) -> List ::
+  match (lhs, rhs)
+    with (#empty, let y) :: y
+    with (#cons(let head, let tail), let y) ::
+      #cons(head, tail + y)
+
+func sort (_ list: List) -> List ::
+  match list
+    with #empty :: #empty
+    with #cons(let head, let tail) ::
+      sort(filter(tail, where: func (_ x: Int) -> Bool :: x < head)) +
+      #cons(head, sort(filter(tail, where: func (_ x: Int) -> Bool :: x >= head)))
 """
 
-var interpreter = Interpreter(debug: true)
+let exprText = """
+sort(#cons(1, #cons(3, #cons(2, #cons(4, #empty)))))
+"""
+
+
+var interpreter = Interpreter(debug: false)
 
 do {
 
 //  let dumper = ASTDumper(outputTo: Logger())
-//  let module = try interpreter.loadModule(fromString: input)
+//  let module = try interpreter.loadModule(fromString: moduleText)
 //  dumper.dump(ast: module)
 //  print()
 
   // Load a module description.
-  try interpreter.loadModule(fromString: input)
+  try interpreter.loadModule(fromString: moduleText)
 
   // Interpret an expression.
-  let val = try interpreter.eval(string: "factorial(of: 10)")
+  let val = try interpreter.eval(string: exprText)
   print(val)
 
 } catch let error as LocatableError {

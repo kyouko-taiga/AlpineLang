@@ -19,6 +19,13 @@ public final class EvaluationContext {
     storage = try Dictionary(keysAndValues, uniquingKeysWith: combine)
   }
 
+  public func merge(
+    _ other: EvaluationContext,
+    uniquingKeysWith combine: (Value, Value) throws -> Value) rethrows
+  {
+    try storage.merge(other.storage, uniquingKeysWith: combine)
+  }
+
   public func merging(
     _ other: EvaluationContext,
     uniquingKeysWith combine: (Value, Value) throws -> Value) rethrows -> EvaluationContext
