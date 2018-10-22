@@ -44,19 +44,19 @@ public final class ConstraintCreator: ASTVisitor, SAPass {
   public func visit(_ node: If) throws {
     // The condition of a conditional expression is always boolean.
     try visit(node.condition)
-    context.add(
-      constraint: .equality(t: node.condition.type!, u: BuiltinType.bool, at: .location(node, .condition)))
+    context.add(constraint:
+      .equality(t: node.condition.type!, u: BuiltinType.bool, at: .location(node, .condition)))
 
     // Both the then and else expressions must have a type compatible with that of the entire
     // conditional expression, which is unknown at this point. Note however that both branches may
     // have unrelated types, as long as those are covariant to that of the expression itself.
     node.type = TypeVariable()
     try visit(node.thenExpr)
-    context.add(
-      constraint: .conformance(t: node.thenExpr.type!, u: node.type!, at: .location(node, .then)))
+    context.add(constraint:
+      .conformance(t: node.thenExpr.type!, u: node.type!, at: .location(node, .then)))
     try visit(node.elseExpr)
-    context.add(
-      constraint: .conformance(t: node.elseExpr.type!, u: node.type!, at: .location(node, .else)))
+    context.add(constraint:
+      .conformance(t: node.elseExpr.type!, u: node.type!, at: .location(node, .else)))
   }
 
   public func visit(_ node: Match) throws {
@@ -114,7 +114,7 @@ public final class ConstraintCreator: ASTVisitor, SAPass {
     let funcType = context.getFunctionType(from: domain, to: node.type!)
 
     context.add(constraint:
-      .equality(t: node.callee.type!, u: funcType, at: .location(node, .call)))
+      .equality(t: node.callee.type!, u: funcType, at: .location(node, .callee)))
   }
 
   public func visit(_ node: Arg) throws {
@@ -156,7 +156,6 @@ public final class ConstraintCreator: ASTVisitor, SAPass {
   public func visit(_ node: Ident) throws {
     // Retrieve the symbol(s) associated with the identifier.
     guard let symbols = node.scope?.symbols[node.name] else {
-      context.add(error: SAError.undefinedSymbol(name: node.name), on: node)
       node.type = ErrorType.get
       return
     }
