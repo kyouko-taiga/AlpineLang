@@ -78,6 +78,10 @@ public final class ASTContext {
 
   // MARK: Built-ins
 
+  public lazy var builtinScope: BuiltinScope = { [unowned self] in
+    return BuiltinScope(context: self)
+  }()
+
   // MARK: Diagnostics
 
   /// The list of errors encountered during the processing of the AST.

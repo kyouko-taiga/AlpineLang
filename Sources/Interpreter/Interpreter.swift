@@ -6,6 +6,7 @@ public struct Interpreter {
 
   public init(debug: Bool = false) {
     self.debug = debug
+    self.normalizer = Normalizer()
     self.symbolCreator = SymbolCreator(context: astContext)
     self.nameBinder = NameBinder(context: astContext)
     self.constraintCreator = ConstraintCreator(context: astContext)
@@ -16,6 +17,7 @@ public struct Interpreter {
   /// The AST context of the interpreter.
   public let astContext = ASTContext()
 
+  private let normalizer: Normalizer
   private let symbolCreator: SymbolCreator
   private let nameBinder: NameBinder
   private let constraintCreator: ConstraintCreator
@@ -45,11 +47,15 @@ public struct Interpreter {
   }
 
   public func eval(expression: Expr) -> Value {
-    // Initialize the evaluation context with the top-level symbols of all loaded modules.
+    // Initialize an evaluation context with top-level symbols from built-in and loaded modules.
     var evalContext: [Symbol: Value] = [:]
+    for (symbol, function) in astContext.builtinScope.semantics {
+      evalContext[symbol] = .builtinFunction(function)
+    }
+
     for module in astContext.modules {
       for (symbol, function) in module.functions {
-        evalContext[symbol] = .function(function)
+        evalContext[symbol] = .function(function, closure: [:])
       }
     }
 
@@ -59,8 +65,10 @@ public struct Interpreter {
 
   private func eval(_ expr: Expr, in evalContext: [Symbol: Value]) -> Value {
     switch expr {
+    case let e as If            : return eval(e, in: evalContext)
     case let e as Call          : return eval(e, in: evalContext)
     case let e as Tuple         : return eval(e, in: evalContext)
+    case let e as Select        : return eval(e, in: evalContext)
     case let e as Ident         : return eval(e, in: evalContext)
     case let e as Scalar<Bool>  : return .bool(e.value)
     case let e as Scalar<Int>   : return .int(e.value)
@@ -71,33 +79,71 @@ public struct Interpreter {
     }
   }
 
-  public func eval(_ expr: Call, in evalContext: [Symbol: Value]) -> Value {
-    // Evaluate the callee.
-    let callee = eval(expr.callee, in: evalContext)
-    guard case .function(let function) = callee
-      else { fatalError("invalid expression: callee is not a function") }
+  public func eval(_ expr: If, in evalContext: [Symbol: Value]) -> Value {
+    // Evaluate the condition.
+    let condition = eval(expr.condition, in: evalContext)
+    guard case .bool(let value) = condition
+      else { fatalError("non-boolean condition") }
 
-    // Evaluate the arguments.
+    // Evaluate the branch, depending on the condition.
+    return value
+      ? eval(expr.thenExpr, in: evalContext)
+      : eval(expr.elseExpr, in: evalContext)
+  }
+
+  public func eval(_ expr: Call, in evalContext: [Symbol: Value]) -> Value {
+    // Evaluate the callee and its arguments.
+    let callee = eval(expr.callee, in: evalContext)
     let arguments = expr.arguments.map { eval($0.value, in: evalContext) }
 
-    // Update the evaluation context with the function's arguments.
-    var funcContext = evalContext
-    for (parameter, argument) in zip(function.signature.domain.elements, arguments) {
-      if let label = parameter.label {
-        let symbols = function.innerScope!.symbols[label]!
-        assert(symbols.count == 1)
-        funcContext[symbols[0]] = argument
-      }
-    }
+    switch callee {
+    case .builtinFunction(let function):
+      let swiftArguments = arguments.compactMap { $0.swiftValue }
+      assert(swiftArguments.count == arguments.count)
+      return Value(value: function(swiftArguments))!
 
-    // Evaluate the function's body.
-    return eval(function.body, in: funcContext)
+    case .function(let function, let closure):
+      // Update the evaluation context with the function's arguments.
+      var funcContext = evalContext.merging(closure) { _, rhs in rhs }
+      for (parameter, argument) in zip(function.signature.domain.elements, arguments) {
+        if let name = parameter.name {
+          let symbols = function.innerScope!.symbols[name]!
+          assert(symbols.count == 1)
+          funcContext[symbols[0]] = argument
+        }
+      }
+
+      // Evaluate the function's body.
+      return eval(function.body, in: funcContext)
+
+    default:
+      fatalError("invalid expression: callee is not a function")
+    }
   }
 
   public func eval(_ expr: Tuple, in evalContext: [Symbol: Value]) -> Value {
     // Evaluate the tuple's elements.
     let elements = expr.elements.map { (label: $0.label, value: eval($0.value, in: evalContext)) }
     return .tuple(label: expr.label, elements: elements)
+  }
+
+  public func eval(_ expr: Select, in evalContext: [Symbol: Value]) -> Value {
+    // Evaluate the owner.
+    let owner = eval(expr.owner, in: evalContext)
+    guard case .tuple(label: _, let elements) = owner
+      else { fatalError("invalid expression: expected owner to be a tuple") }
+
+    switch expr.ownee {
+    case .label(let label):
+      guard let element = elements.first(where: { $0.label == label })
+        else { fatalError("\(owner) has no member named \(label)") }
+      return element.value
+
+    case .index(let index):
+      guard index < elements.count
+        else { fatalError("\(owner) has no \(index)-th member") }
+      return elements[index].value
+    }
   }
 
   public func eval(_ expr: Ident, in evalContext: [Symbol: Value]) -> Value {
@@ -111,7 +157,8 @@ public struct Interpreter {
   }
 
   // Perform type inference on an untyped AST.
-  private func runSema(on ast: Node) throws -> Node {
+  private func runSema(on untypedAST: Node) throws -> Node {
+    var ast = try normalizer.transform(untypedAST)
     try symbolCreator.visit(ast)
     try nameBinder.visit(ast)
     try constraintCreator.visit(ast)
@@ -126,11 +173,10 @@ public struct Interpreter {
     var solver = ConstraintSolver(constraints: astContext.typeConstraints, in: astContext)
     let result = solver.solve()
 
-    var typedAST = ast
     switch result {
     case .success(let solution):
       let dispatcher = Dispatcher(context: astContext, solution: solution)
-      typedAST = try dispatcher.transform(ast)
+      ast = try dispatcher.transform(ast)
 
     case .failure(let errors):
       for error in errors {
@@ -142,7 +188,8 @@ public struct Interpreter {
 
     guard astContext.errors.isEmpty
       else { throw InterpreterError.staticFailure(errors: astContext.errors) }
-    return typedAST
+    astContext.typeConstraints.removeAll()
+    return ast
   }
 
 }
