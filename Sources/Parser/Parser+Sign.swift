@@ -42,18 +42,27 @@ extension Parser {
       let backtrackPosition = streamPosition
       let start = consume()!.range.start
       consumeNewlines()
+
       if let enclosed = try? parseSign() {
-        // If the parsed signature is a type identifier, we may have in fact parsed the label of a
-        // tuple element, in which case we should backtrack.
         consumeNewlines()
         let next = peek().kind
+
         if next == .comma {
+          // If the next token is a comma, we parsed the first element of a tuple signature.
           rewind(to: backtrackPosition)
         } else if (enclosed is TypeIdent) && ((next == .colon) || (next == .identifier)) {
+          // If the parsed signature is an identifier, and the next token is either a colon or
+          // another identifier, we parsed the label of the first element of a tuple signature.
           rewind(to: backtrackPosition)
         } else if let end = consume(.rightParen)?.range.end {
-          enclosed.range = SourceRange(from: start, to: end)
-          return enclosed
+          if consume(.arrow, afterMany: .newline) != nil {
+            // If we parsed a right parenthesis followed by an arrow, we parsed the domain of a
+            // function signature.
+            rewind(to: backtrackPosition)
+          } else {
+            enclosed.range = SourceRange(from: start, to: end)
+            return enclosed
+          }
         } else {
           throw unexpectedToken(expected: ")")
         }
