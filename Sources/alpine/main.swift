@@ -1,60 +1,80 @@
+import Foundation
+
+import ArgParse
 import AST
 import Parser
 import Interpreter
 
-let moduleText = """
-//type Pair :: (_: Int, _: Int)
-//func first_of(pair: Pair) -> Int :: pair.0
-
-type List :: #empty or #cons(Int, List)
-
-func filter (_ list: List, where predicate: (_: Int) -> Bool) -> List ::
-  match list
-    with #empty :: #empty
-    with #cons(let head, let tail) ::
-    if predicate(head)
-      then #cons(head, filter(tail, where: predicate))
-      else filter(tail, where: predicate)
-
-func + (_ lhs: List, _ rhs: List) -> List ::
-  match (lhs, rhs)
-    with (#empty, let y) :: y
-    with (#cons(let head, let tail), let y) ::
-      #cons(head, tail + y)
-
-func sort (_ list: List) -> List ::
-  match list
-    with #empty :: #empty
-    with #cons(let head, let tail) ::
-      sort(filter(tail, where: func (_ x: Int) -> Bool :: x < head)) +
-      #cons(head, sort(filter(tail, where: func (_ x: Int) -> Bool :: x >= head)))
-"""
-
-let exprText = """
-sort(#cons(1, #cons(3, #cons(2, #cons(4, #empty)))))
-"""
-
-
-var interpreter = Interpreter(debug: false)
-
-do {
-
-//  let dumper = ASTDumper(outputTo: Logger())
-//  let module = try interpreter.loadModule(fromString: moduleText)
-//  dumper.dump(ast: module)
-//  print()
-
-  // Load a module description.
-  try interpreter.loadModule(fromString: moduleText)
-
-  // Interpret an expression.
-  let val = try interpreter.eval(string: exprText)
-  print(val)
-
-} catch let error as LocatableError {
-  diagnose(error: error, in: Console.err)
-} catch InterpreterError.staticFailure(let errors) {
-  diagnose(errors: errors, in: Console.err)
-} catch {
-  print(error)
+private func run(_ block: () throws -> Void) {
+  do {
+    try block()
+  } catch let error as LocatableError {
+    diagnose(error: error, in: Console.err)
+  } catch InterpreterError.staticFailure(let errors) {
+    diagnose(errors: errors, in: Console.err)
+  } catch {
+    print(error)
+  }
 }
+
+// Parse the command line arguments.
+
+private let parser: ArgumentParser = [
+  .positional("input"              , description: "path to a file with the expression to execute"),
+  .option    ("import" , alias: "i", description: "import a module"),
+  .option    ("exec"   , alias: "e", description: "execute the given expression"),
+  .flag      ("verbose", alias: "v", description: "output various compiler debug info"),
+  .flag      ("help"   , alias: "h", description: "show this help"),
+]
+
+private let parseResult: ArgumentParser.ParseResult
+do {
+  parseResult = try parser.parse(CommandLine.arguments)
+} catch let error as ArgumentParserError {
+  switch error {
+  case .emptyCommandLine:
+    Console.err.print("error: command line is empty")
+  case .missingArguments:
+    Console.err.print("error: no input file")
+  case .unexpectedArgument(let arg):
+    Console.err.print("error: unexpected argument '\(arg)'")
+  case .invalidArity(let arg, _):
+    Console.err.print("error: invalid value for argument '\(arg.name)'")
+  }
+  exit(-1)
+}
+
+guard !(parseResult["help"] as! Bool) else {
+  parser.printUsage(to: &Console.out)
+  exit(0)
+}
+
+let verbose = parseResult["verbose"] as! Bool
+var interpreter = Interpreter(debug: verbose)
+let dumper = ASTDumper(outputTo: Console.err)
+
+// Load the module if provided.
+if let modulePath = parseResult["import"] as? String {
+  let moduleText = try String(contentsOfFile: modulePath, encoding: .utf8)
+
+  run {
+    let module = try interpreter.loadModule(fromString: moduleText)
+    if verbose {
+      dumper.dump(ast: module)
+    }
+  }
+}
+
+// Execute the given expression.
+let val: Value
+if let exprText = parseResult["exec"] as? String {
+  val = try interpreter.eval(string: exprText)
+} else if let exprPath = parseResult["input"] as? String {
+  let exprText = try String(contentsOfFile: exprPath)
+  val = try interpreter.eval(string: exprText)
+} else {
+  Console.err.print("error: no input")
+  exit(-1)
+}
+
+Console.out.print(val)

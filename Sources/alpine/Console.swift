@@ -1,6 +1,6 @@
 import Foundation
 
-struct Console {
+struct Console: TextOutputStream {
 
   public func print(_ items: Any..., separator: String = " ", terminator: String = "\n") {
     let string = items.map({ String(describing: $0) }).joined(separator: separator) + terminator
@@ -11,6 +11,7 @@ struct Console {
     fputs(string, file)
   }
 
+  public static var out = Console(file: stdout)
   public static var err = Console(file: stderr)
 
   private init(file: UnsafeMutablePointer<FILE>) {
