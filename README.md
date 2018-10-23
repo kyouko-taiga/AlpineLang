@@ -84,7 +84,7 @@ expr            :: func | if | match | let-binding | binary | unary | call |
                    tuple | select | ident | string | real | integer | boolean ;
 func            :: "func", [ ident ], func-sign "::" expr ;
 if              :: "if", expr, "then", expr, "else", expr ;
-match           :: "match", expr, match-case, { match-case },
+match           :: "match", expr, match-case, { match-case };
 match-case      :: "with", expr, "::", expr ;
 let-binding     :: "let", ident ;
 binary          :: expr, operator, expr ;
