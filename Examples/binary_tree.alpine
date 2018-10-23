@@ -1,0 +1,19 @@
+// The following module defines a type `BinaryTree` that act as an ordered collection of integers.
+// The module also defines a function `insert` that preserve the invariant stating that everything
+// on the left (resp. right) of a node has a smaller (resp. greater) value.
+//
+// You can test the module with the following expression, which will produce a balanced tree:
+//
+//     insert(in: insert(in: insert(in: #nil, value: 2), value: 3), value: 1)
+//
+
+type BinaryTree :: #nil or #node(value: Int, left: BinaryTree, right: BinaryTree)
+
+func insert(in tree: BinaryTree, value: Int) -> BinaryTree ::
+  match tree
+    with #nil ::
+      #node(value: value, left: #nil, right: #nil)
+    with #node(value: let x, left: let left, right: let right) ::
+      if value < x
+        then #node(value: x, left: insert(in: left, value: value), right: right)
+        else #node(value: x, left: left, right: insert(in: right, value: value))
