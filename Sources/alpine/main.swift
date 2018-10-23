@@ -7,7 +7,7 @@ import Interpreter
 
 private func run(_ block: () throws -> Void) {
   do {
-    try block()
+    return try block()
   } catch let error as LocatableError {
     diagnose(error: error, in: Console.err)
   } catch InterpreterError.staticFailure(let errors) {
@@ -15,6 +15,7 @@ private func run(_ block: () throws -> Void) {
   } catch {
     print(error)
   }
+  exit(-1)
 }
 
 // Parse the command line arguments.
@@ -24,6 +25,7 @@ private let parser: ArgumentParser = [
   .option    ("import" , alias: "i", description: "import a module"),
   .option    ("exec"   , alias: "e", description: "execute the given expression"),
   .flag      ("verbose", alias: "v", description: "output various compiler debug info"),
+  .flag      ("dump-ast"           , description: "output the ast"),
   .flag      ("help"   , alias: "h", description: "show this help"),
 ]
 
@@ -50,16 +52,16 @@ guard !(parseResult["help"] as! Bool) else {
 }
 
 let verbose = parseResult["verbose"] as! Bool
+let dumpAST = parseResult["dump-ast"] as! Bool
 var interpreter = Interpreter(debug: verbose)
 let dumper = ASTDumper(outputTo: Console.err)
 
 // Load the module if provided.
 if let modulePath = parseResult["import"] as? String {
   let moduleText = try String(contentsOfFile: modulePath, encoding: .utf8)
-
   run {
     let module = try interpreter.loadModule(fromString: moduleText)
-    if verbose {
+    if dumpAST {
       dumper.dump(ast: module)
     }
   }
