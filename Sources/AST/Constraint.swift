@@ -24,8 +24,8 @@ public enum ConstraintPath: Equatable {
   case annotation
   /// The body of a function.
   case body
-  /// The call site of a function.
-  case call
+  /// The callee of a function call.
+  case callee
   /// The codomain of a function.
   case codomain
   /// The condition of a conditional expression.

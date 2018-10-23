@@ -3,7 +3,7 @@ import Foundation
 import AST
 import Utils
 
-/// Lexer for the tokens of the Anzen language.
+/// Lexer for the tokens of the Alpine language.
 public struct Lexer {
 
   public init(source: TextInputBuffer) throws {
@@ -26,7 +26,7 @@ public struct Lexer {
       currentLocation.offset += 1
       charIndex = characters.index(after: charIndex)
     }
-    return characters[startIndex ... charIndex]
+    return characters[startIndex ..< charIndex]
   }
 
   /// Take a characters from the stream as long as the predicate holds, advancing the lexer.

@@ -1,4 +1,4 @@
-// swift-tools-version:4.1
+// swift-tools-version:4.2
 import PackageDescription
 
 let package = Package(
@@ -6,9 +6,11 @@ let package = Package(
   products: [
     .executable(name: "alpine", targets: ["alpine"]),
   ],
-  dependencies: [],
+  dependencies: [
+    .package(url: "https://github.com/kyouko-taiga/ArgParse.git", from: "1.1.0"),
+  ],
   targets: [
-    .target(name: "alpine", dependencies: ["AST", "Interpreter", "Parser", "Sema"]),
+    .target(name: "alpine", dependencies: ["AST", "Interpreter", "Parser", "Sema", "ArgParse"]),
     .target(name: "AST", dependencies: ["Utils"]),
     .target(name: "Interpreter", dependencies: ["AST", "Parser", "Sema"]),
     .target(name: "Parser", dependencies: ["AST"]),

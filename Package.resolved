@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "ArgParse",
+        "repositoryURL": "https://github.com/kyouko-taiga/ArgParse.git",
+        "state": {
+          "branch": null,
+          "revision": "aae7bfff83e86382306d9a89dd6a338fe4b24ec5",
+          "version": "1.1.0"
+        }
+      }
+    ]
+  },
+  "version": 1
+}

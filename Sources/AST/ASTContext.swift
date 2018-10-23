@@ -53,15 +53,22 @@ public final class ASTContext {
   }
 
   /// Retrieves or create a union type.
-  public func getUnionType(cases: Set<TypeBase>) -> UnionType {
+  public func getUnionType(cases: Set<TypeBase>) -> TypeBase {
     if let type = unionTypes.first(where: {
       $0.cases == cases
     }) {
       return type
     }
-    let type = UnionType(cases: flatten(cases))
-    unionTypes.append(type)
-    return type
+
+    let flattened = flatten(cases)
+    if flattened.count == 1 {
+      // Prevent the creation of singletons.
+      return flattened.first!
+    } else {
+      let type = UnionType(cases: flatten(cases))
+      unionTypes.append(type)
+      return type
+    }
   }
 
   private func flatten(_ cases: Set<TypeBase>) -> Set<TypeBase> {

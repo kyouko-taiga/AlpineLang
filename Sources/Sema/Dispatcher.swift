@@ -118,11 +118,6 @@ public final class Dispatcher: ASTTransformer {
   }
 
   public func transform(_ node: MatchCase) throws -> Node {
-    // Reify the type of the node.
-    node.type = node.type.map {
-      solution.reify(type: $0, in: context, skipping: &visited)
-    }
-
     // Reify the types of the symbols in the scope of the case.
     node.innerScope.map { reifyScopeSymbols(of: $0) }
 

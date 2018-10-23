@@ -103,7 +103,7 @@ public struct SubstitutionTable {
   }
 
   public func reify(type: UnionType, in context: ASTContext, skipping visited: inout [TupleType])
-    -> UnionType
+    -> TypeBase
   {
     return context.getUnionType(cases: Set(type.cases.map({
       reify(type: $0, in: context, skipping: &visited)
