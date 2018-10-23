@@ -10,12 +10,69 @@ Alpine hasn't been developed to be a fully-featured standalone language.
 Hence, it does not offer any support for input/output, side effects or concurrency,
 which are features expected to be implemented in a model.
 
+## Usage
+
+Although Alpine-Lang is first and foremost designed to be used within the Alpine Editor,
+its interpreter can be used offline,
+either as a command line tool or as a library.
+
+The whole thing being written in [Swift](https://swift.org),
+a working Swift 4.2+ compiler is a requirement to build and/or use Alpine-Lang's interpreter.
+
+### As a Command Line Tool
+
+Download the present repository on your file system and build the `alpine` target
+with Swift Package Manager.
+Run the following command at the root of the repository (i.e. where `Package.swift` is located).
+This will produce an executable `alpine` in the folder `.build/release`,
+which you can use from there or move wherever you want.
+
+```bash
+swift build -c release
+```
+
+You can interpret an expression with the following command:
+
+```bash
+alpine -e '"Hello, World!"'
+```
+
+use the `--import` option to specify the path of a module containing additional definitions
+such as function and type declarations:
+
+```bash
+alpine --import some/module.alpine -e 'my_function(a: 1, b: 2)'
+```
+
+### As a Library
+
+You can add Alpine-Lang as a dependency to your project with Swift Package Manager:
+
+```swift
+let package = Package(
+  name: "AwesomeProject",
+  dependencies: [
+    .package(url: "https://github.com/kyouko-taiga/AlpineLang.git", branch: "master"),
+  ],
+  // ...
+```
+
+This will let you import Alpine-Lan's interpreter in your own code:
+
+```swift
+import Interpreter
+
+var interpreter = Interpreter()
+let value = try! interpreter.eval(string: "\"Hello, World!\"")
+print(value)
+```
+
 ## Syntax
 
 Alpine-Lang is based on a rather small set of constructions,
 which makes the syntax of the language relatively easy to understand.
 
-```
+```ebnf
 module          :: { ( func | type ) } ;
 type            :: "type", ident, "::", type-sign ;
 type-sign       :: func-sign | tuple-sign | union-sign | ident ;
