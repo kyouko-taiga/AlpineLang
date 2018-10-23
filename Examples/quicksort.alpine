@@ -1,0 +1,30 @@
+// The following module defines a type `List`, as well as a few functions to manipulate it,
+// including a simple implementation of quicksort.
+//
+// You can test the module with the following expression, which will sort the list `3, 1, 2`:
+//
+//     sort(#cons(3, #cons(1, #cons(2, #empty))))
+//
+
+type List :: #empty or #cons(Int, List)
+
+func filter (_ list: List, where predicate: (_: Int) -> Bool) -> List ::
+  match list
+    with #empty :: #empty
+    with #cons(let head, let tail) ::
+      if predicate(head)
+        then #cons(head, filter(tail, where: predicate))
+        else filter(tail, where: predicate)
+
+func + (_ lhs: List, _ rhs: List) -> List ::
+  match (lhs, rhs)
+    with (#empty, let y) :: y
+    with (#cons(let head, let tail), let y) ::
+      #cons(head, tail + y)
+
+func sort (_ list: List) -> List ::
+  match list
+    with #empty :: #empty
+    with #cons(let head, let tail) ::
+      sort(filter(tail, where: func (_ x: Int) -> Bool :: x < head)) +
+      #cons(head, sort(filter(tail, where: func (_ x: Int) -> Bool :: x >= head)))
