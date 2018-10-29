@@ -106,6 +106,21 @@ public struct Token {
     return InfixOperator(rawValue: kind.rawValue)
   }
 
+  /// Whether or not the token can represent a label.
+  public var isLabel: Bool {
+    return [.identifier, .not, .and, .or, .let, .func, .type, .if, .then, .else, .match, .with]
+      .contains(kind)
+  }
+
+  /// The token as a label value.
+  public var asLabel: String? {
+    guard isLabel
+      else { return nil }
+    return kind == .identifier
+      ? value
+      : kind.rawValue
+  }
+
   /// The kind of the token.
   public let kind: TokenKind
   /// The optional value of the token.
