@@ -142,26 +142,47 @@ public struct ConstraintSolver {
       assumptions.set(substitution: a, for: var_)
       return .success
 
-    case (_, let union as UnionType):
-      // Get the substitutions we already inferred for the cases of the union
-      let cases = union.cases.map(assumptions.substitution)
+    case (let union as UnionType, _):
+      assert(!(b is TypeVariable))
 
-      if let left = a as? UnionType {
-        // An equality or conformance constraint between unions requires us to pair each element of
-        // the left with an equivalent type on the right. However, there might be some types that
-        // are still unknown but could potentionally be matched with one of the type on the right.
-        // One way to do that is to break the constraint into conformance conformance constraints
-        // for each of the members of the union.
-        for type in left.cases {
-          constraints.append(.conformance(t: type, u: union, at: constraint.location + .unionCase))
+      // Get the substitutions we already inferred for the cases of the union
+      let cases = Set(union.cases.map(assumptions.substitution))
+
+      // There are two cases to consider when `t` is a union:
+      if let right = b as? UnionType {
+        // `u` is also a union. Then, a conformance constraint requires us to match each case of `t`
+        // with a case of `u`, and an equality constraint adds dual constraints. Solving such system
+        // amounts to solving `t_i ≤ u` for all `t_i` in `t`, as well as `u_i ≤ t` for all `u_i` in
+        // `u` in the case of an equality constraint.
+        for ti in cases {
+          constraints.append(.conformance(t: ti, u: b, at: constraint.location + .unionCase))
         }
-        return .success
+        if constraint.kind == .equality {
+          let rightCases = Set(right.cases.map(assumptions.substitution))
+          for ui in rightCases {
+            constraints.append(.conformance(t: ui, u: union, at: constraint.location + .unionCase))
+          }
+        }
+      } else {
+        // `u` isn't a union. Then `t` must be a singleton whose only case matches `u`. Solving such
+        // equality (resp. conformance) constraint amounts to solving `t_i ≡ u` (resp. `t_i ≤ u`)
+        // for all `t_i` in `t`.
+        for ti in cases {
+          constraints.append(Constraint(
+            kind: constraint.kind,
+            types: (ti, b),
+            location:  constraint.location))
+        }
       }
 
-      // Obviously, an equality constraint can't be solved if the `t` isn't a union.
-      guard constraint.kind == .conformance
-        else { return .failure }
+      return .success
 
+    case (_, let union as UnionType):
+      assert(!(a is TypeVariable))
+      assert(!(a is UnionType))
+
+      // Get the substitutions we already inferred for the cases of the union
+      let cases = union.cases.map(assumptions.substitution)
       if cases.contains(a) {
         // The conformance succeeds if `t` is member of `u`.
         return .success
