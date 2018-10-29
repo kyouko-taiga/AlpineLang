@@ -231,20 +231,20 @@ extension Parser {
 
     // Parse the match cases.
     var cases: [MatchCase] = []
-    while peek().kind == .with {
+    while true {
       // Parse a single case.
       cases.append(try parseMatchCase())
 
-      // If the next token isn't another `with`, we MUST parse a statement delimiter.
-      if peek().kind != .with {
-        // There's a special case to handle when parsing the value of the last consumed all the
-        // remaining tokens in the stream.
-        guard peek().kind != .eof
-          else { break }
-        guard peek().isStatementDelimiter
-          else { throw parseFailure(.expectedStatementDelimiter) }
-        consumeNewlines()
+      // Check if there're still other cases to parse.
+      let backtrackPosition = streamPosition
+      consumeNewlines()
+      if peek().kind == .with {
+        continue
       }
+
+      // There are no more cases to consume, so we can return the match we've parsed.
+      rewind(to: backtrackPosition)
+      break
     }
 
     return Match(
