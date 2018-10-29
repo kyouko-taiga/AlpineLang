@@ -16,7 +16,18 @@
 // eq_set(#cons(#zero, #cons(#succ(#succ(#zero)), #empty)), #cons(#zero, #cons(#succ(#succ(#zero)), #cons(#succ(#succ(#succ(#zero))), #empty))))
 // {0, 2} == {2, 0} -> True
 // eq_set(#cons(#zero, #cons(#succ(#succ(#zero)), #empty)), #cons(#succ(#succ(#zero)), #cons(#zero , #empty)))
-
+// insert(1, {0,2}) -> {1,0,2}
+// insert(#succ(#zero), #cons(#zero, #cons(#succ(#succ(#zero)), #empty)))
+// union({}, {}) = {1}
+// union(#empty, #empty), #empty)
+// union({0},{1}) = {0,1}
+// union(#cons(#zero, #empty), #cons(#succ(#zero), #empty))
+// union({0,1}, {1,2}) = {0,1,2}
+// union(#cons(#zero, #cons(#succ(#zero), #empty)), #cons(#succ(#zero), #cons(#succ(#succ(#zero)), #empty)))
+// intersection({0,1}, {1,2}) = {1}
+// intersection(#cons(#zero, #cons(#succ(#zero), #empty)), #cons(#succ(#zero), #cons(#succ(#succ(#zero)), #empty)))
+// intersection({0,1}, {})
+// intersection(#cons(#zero, #cons(#succ(#zero), #empty)), #empty)
 
 type Nat :: #zero or #succ(Nat)
 type Boolean :: #True or #False
@@ -25,6 +36,7 @@ type Set :: #empty or #cons(_ element: Nat, _ rest: Set)
 //BOOLEAN FUNCTIONS
 
 func not(_ bool: Boolean) -> Boolean ::
+// Not of a boolean
   match(bool)
     with #True ::
       #False
@@ -34,6 +46,7 @@ func not(_ bool: Boolean) -> Boolean ::
 // NAT FUNCTIONS
 
 func eq(_ nat1: Nat, _ nat2: Nat) -> Boolean ::
+// Equality between two numbers
   match (nat1, nat2)
     with (#zero, #zero) ::
       #True
@@ -48,6 +61,7 @@ func eq(_ nat1: Nat, _ nat2: Nat) -> Boolean ::
 // SET FUNCTIONS
 
 func count(_ set: Set) -> Nat ::
+// Count number of element in a set
     match set
       with #empty ::
         #zero
@@ -56,6 +70,7 @@ func count(_ set: Set) -> Nat ::
 
 
 func contain(_ nat: Nat, _ set: Set ) -> Boolean ::
+// Return if element is in a set
   match set
     with #empty ::
       #False
@@ -65,7 +80,9 @@ func contain(_ nat: Nat, _ set: Set ) -> Boolean ::
         with #False ::
           contain(nat, rest);
 
+
 func remove(_ nat: Nat, _ set: Set) -> Set ::
+// Remove an element in a set
   match set
     with #empty ::
       #empty
@@ -74,7 +91,9 @@ func remove(_ nat: Nat, _ set: Set) -> Set ::
         with #True :: rest
         with #False :: #cons(x, remove(nat, rest));
 
+
 func eq_set(_ set1: Set, _ set2: Set) -> Boolean ::
+// Equality between two sets
   match (set1, set2)
     with (#empty, #empty) :: #True
     with (#empty, let x) :: #False
@@ -84,4 +103,34 @@ func eq_set(_ set1: Set, _ set2: Set) -> Boolean ::
         with #True ::
           eq_set(s1, remove(x, s2))
         with #False ::
-          #False
+          #False;
+
+
+func insert(_ nat: Nat, _ set: Set ) -> Set ::
+// Insert an element in a set
+  match set
+    with #empty ::
+      #cons(nat, #empty)
+    with let s ::
+      match contain(nat, s)
+        with #True :: s
+        with #False ::
+          #cons(nat, s);
+
+
+func union(_ set1: Set, _ set2: Set ) -> Set ::
+// Union between two sets
+  match (set1, set2)
+    with (let s1, #empty) :: s1
+    with (let s1, #cons(let x, let s2)) ::
+      union(insert(x, s1), s2)
+
+
+func intersection(_ set1: Set, _ set2: Set ) -> Set ::
+// Intersection between two sets
+  match (set1, set2)
+    with (#empty, let s2) :: #empty
+    with (#cons(let x, let s1), let s2) ::
+      match contain(x, s2)
+        with #True :: #cons(x, intersection(s1, s2))
+        with #False :: intersection(s1,s2)
