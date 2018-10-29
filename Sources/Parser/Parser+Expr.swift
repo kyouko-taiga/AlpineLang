@@ -292,50 +292,50 @@ extension Parser {
 
   /// Parses a call argument.
   func parseArg() throws -> Arg {
+    var label: String? = nil
+    var start: SourceLocation? = nil
+
     // Parse the optional label of the argument.
-    var label: Token? = nil
     let backtrackPosition = streamPosition
-    if let token = consume(.identifier) {
-      consumeNewlines()
+    if let (value, range) = try? parseLabel() {
       if consume(.colon, afterMany: .newline) == nil {
         rewind(to: backtrackPosition)
       } else {
-        label = token
+        label = value
+        start = range.start
       }
     }
 
-    // Read the argument's value.
+    // Parse the argument's value.
     let value = try parseExpr()
-    let start = label?.range.start ?? value.range.start
     return Arg(
-      label: label?.value,
+      label: label,
       value: value,
       module: module,
-      range: SourceRange(from: start, to: value.range.end))
+      range: SourceRange(from: start ?? value.range.start, to: value.range.end))
   }
 
   /// Parses a tuple.
   func parseTuple() throws -> Tuple {
-    var start: SourceLocation? = nil
     var label: String? = nil
+    var start: SourceLocation? = nil
 
     // Parse the label of the tuple, if any.
     if let sharp = consume(.sharp) {
-      guard let identifier = consume(.identifier)
-        else { throw parseFailure(.expectedIdentifier) }
+      let (value, range) = try parseLabel()
       start = sharp.range.start
-      label = identifier.value
+      label = value
 
       // Labeled tuples may not have explicit tuple elements.
       let backtrackPosition = streamPosition
       consumeNewlines()
-      if label != nil && peek().kind != .leftParen {
+      if peek().kind != .leftParen {
         rewind(to: backtrackPosition)
         return Tuple(
           label: label,
           elements: [],
           module: module,
-          range: SourceRange(from: start!, to: identifier.range.end))
+          range: SourceRange(from: start!, to: range.end))
       }
     }
 
@@ -364,26 +364,36 @@ extension Parser {
 
   /// Parses a tuple element.
   func parseTupleElem() throws -> TupleElem {
-    // Parse the optional label of the elements.
-    var label: Token? = nil
+    var label: String? = nil
+    var start: SourceLocation? = nil
+
+    // Parse the optional label of the argument.
     let backtrackPosition = streamPosition
-    if let token = consume(.identifier) {
-      consumeNewlines()
+    if let (value, range) = try? parseLabel() {
       if consume(.colon, afterMany: .newline) == nil {
         rewind(to: backtrackPosition)
       } else {
-        label = token
+        label = value
+        start = range.start
       }
     }
 
     // Parse the elements's value.
     let value = try parseExpr()
-    let start = label?.range.start ?? value.range.start
     return TupleElem(
-      label: label?.value,
+      label: label,
       value: value,
       module: module,
-      range: SourceRange(from: start, to: value.range.end))
+      range: SourceRange(from: start ?? value.range.start, to: value.range.end))
+  }
+
+  /// Parses a label
+  func parseLabel() throws -> (value: String, range: SourceRange) {
+    if let token = consume(if: { $0.isLabel }) {
+      return (token.asLabel!, token.range)
+    } else {
+      throw parseFailure(.expectedIdentifier)
+    }
   }
 
 }
