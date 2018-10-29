@@ -96,7 +96,7 @@ func contain(_ nat: Nat, _ set: Set ) -> Boolean ::
       match eq(nat, x)
         with #True :: #True
         with #False ::
-          contain(nat, rest);
+          contain(nat, rest)
 
 
 func remove(_ nat: Nat, _ set: Set) -> Set ::
@@ -107,7 +107,7 @@ func remove(_ nat: Nat, _ set: Set) -> Set ::
     with #cons(let x, let rest) ::
       match eq(nat, x)
         with #True :: rest
-        with #False :: #cons(x, remove(nat, rest));
+        with #False :: #cons(x, remove(nat, rest))
 
 
 func eq_set(_ set1: Set, _ set2: Set) -> Boolean ::
@@ -121,7 +121,7 @@ func eq_set(_ set1: Set, _ set2: Set) -> Boolean ::
         with #True ::
           eq_set(s1, remove(x, s2))
         with #False ::
-          #False;
+          #False
 
 
 func insert(_ nat: Nat, _ set: Set) -> Set ::
@@ -133,7 +133,7 @@ func insert(_ nat: Nat, _ set: Set) -> Set ::
       match contain(nat, s)
         with #True :: s
         with #False ::
-          #cons(nat, s);
+          #cons(nat, s)
 
 
 func union(_ set1: Set, _ set2: Set) -> Set ::
@@ -151,7 +151,7 @@ func intersection(_ set1: Set, _ set2: Set) -> Set ::
     with (#cons(let x, let s1), let s2) ::
       match contain(x, s2)
         with #True :: #cons(x, intersection(s1, s2))
-        with #False :: intersection(s1,s2);
+        with #False :: intersection(s1,s2)
 
 
 func difference(_ set1: Set, _ set2: Set) -> Set ::
@@ -161,7 +161,7 @@ func difference(_ set1: Set, _ set2: Set) -> Set ::
     with (#cons(let x, let s1), let s2) ::
       match contain(x, s2)
         with #False :: #cons(x, difference(s1, s2))
-        with #True :: difference(s1,s2);
+        with #True :: difference(s1,s2)
 
 
 func subSet(_ subset: Set, _ set: Set) -> Boolean ::
