@@ -1,0 +1,93 @@
+// Examples
+
+// size([0,1]) = 2
+// size(#cons(#zero, #cons(#succ(#zero), #empty)))
+// push(1, []) = [1]
+// push(#succ(#zero), #empty)
+// push(1,[0]) = [1,0]
+// push(#succ(#zero), #cons(#zero, #empty))
+// pop([0,1]) = [1]
+// pop(#cons(#zero, #cons(#succ(#zero), #empty)))
+// top([0,1]) = 0
+// top(#cons(#zero, #cons(#succ(#zero), #empty)))
+// eq_stack([0,1], [0,1]) = True
+// eq_stack(#cons(#zero, #cons(#succ(#zero), #empty)), #cons(#zero, #cons(#succ(#zero), #empty)))
+// eq_stack([0,1], [1,0]) = False
+// eq_stack(#cons(#zero, #cons(#succ(#zero), #empty)), #cons(#succ(#zero), #cons(#zero, #empty)))
+
+
+type Nat :: #zero or #succ(Nat)
+type Boolean :: #True or #False
+type Stack :: #empty or #cons(_ element: Nat, _ rest: Stack)
+
+//BOOLEAN FUNCTIONS
+
+func not(_ bool: Boolean) -> Boolean ::
+// Not of a boolean
+  match(bool)
+    with #True ::
+      #False
+    with #False ::
+      #True
+
+// NAT FUNCTIONS
+
+func eq(_ nat1: Nat, _ nat2: Nat) -> Boolean ::
+// Equality between two numbers
+  match (nat1, nat2)
+    with (#zero, #zero) ::
+      #True
+    with (let x, #zero) ::
+      #False
+    with (#zero, let x) ::
+      #False
+    with (#succ(let x), #succ(let y)) ::
+      eq(x, y)
+
+
+// STACK FUNCTIONS
+
+func size(_ stack: Stack) -> Nat ::
+  match stack
+    with #empty :: #zero
+    with #cons(let x, let s) ::
+      #succ(size(s))
+
+
+func push(_ nat: Nat, _ stack: Stack) -> Stack ::
+// Push a nat on the stack
+  match stack
+    with #empty::
+      #cons(nat, #empty)
+    with let s ::
+      #cons(nat, s)
+
+
+func pop(_ stack: Stack) -> Stack ::
+// Remove the first element on the stack
+  match stack
+    with #empty ::
+      #empty
+    with #cons(let x, let s) ::
+      s
+
+
+func top(_ stack: Stack) -> Nat ::
+// Return the first value of the stack
+  match stack
+    with #empty ::
+      #zero
+    with #cons(let x, let s) ::
+      x
+
+
+  func eq_stack(_ stack1: Stack, _ stack2: Stack) -> Boolean ::
+  // Return a Boolean if both stack are equal 
+    match (stack1, stack2)
+      with (#empty, #empty) :: #True
+      with (#empty, let s) :: #False
+      with (let s, #empty) :: #False
+      with (#cons(let x1, let s1), #cons(let x2, let s2)) ::
+        match eq(x1, x2)
+          with #True :: eq_stack(s1, s2)
+          with #False :: #False
