@@ -1,0 +1,132 @@
+// Examples
+
+// size([0,1]) = 2
+// size(#cons(#zero, #cons(#succ(#zero), #empty)))
+// insert(1, []) = [1]
+// insert(#succ(#zero), #empty)
+// insert(1,[0]) = [1,0]
+// insert(#succ(#zero), #cons(#zero, #empty))
+// eq_list([0,1], [0,1]) = True
+// eq_list(#cons(#zero, #cons(#succ(#zero), #empty)), #cons(#zero, #cons(#succ(#zero), #empty)))
+// eq_list([0,1], [1,0]) = False
+// eq_list(#cons(#zero, #cons(#succ(#zero), #empty)), #cons(#succ(#zero), #cons(#zero, #empty)))
+// remove_one(2, [0, 2, 3]) -> [0, 3]
+// remove_one(#succ(#succ(#zero)), #cons(#zero, #cons(#succ(#succ(#zero)), #cons(#succ(#succ(#succ(#zero))), #empty))))
+// remove_all(0, [0, 0]) -> []
+// remove_all(#zero, #cons(#zero, #empty))
+// remove_all(0, [0, 1, 0]) -> [1]
+// remove_all(#zero, #cons(#succ(#zero), #cons(#zero, #empty)))
+// look_at_index(#succ(#succ(#zero)))
+// look_at_index(2, [0, 2, 3]) -> [3]
+// look_at_index(#succ(#succ(#zero)), #cons(#zero, #cons(#succ(#succ(#zero)), #cons(#succ(#succ(#succ(#zero))), #empty))))
+
+
+type Nat :: #zero or #succ(Nat)
+type Boolean :: #True or #False
+type List :: #empty or #cons(_ element: Nat, _ rest: List)
+
+
+//BOOLEAN FUNCTIONS
+
+func not(_ bool: Boolean) -> Boolean ::
+// Not of a boolean
+  match(bool)
+    with #True ::
+      #False
+    with #False ::
+      #True
+
+func and(_ bool1: Boolean, _ bool2: Boolean) -> Boolean ::
+// And between two booleans (bool1 and bool2)
+  match(bool1, bool2)
+    with (#True, #True) :: #True
+    with (let x, let y) :: #False
+
+func or(_ bool1: Boolean, _ bool2: Boolean) -> Boolean ::
+// Or between two booleans (bool1 or bool2)
+  match(bool1, bool2)
+    with (#False, #False) :: #False
+    with (let x, let y) :: #True
+
+// NAT FUNCTIONS
+
+func eq(_ nat1: Nat, _ nat2: Nat) -> Boolean ::
+// Equality between two numbers
+  match (nat1, nat2)
+    with (#zero, #zero) ::
+      #True
+    with (#succ(let x), #zero) ::
+      #False
+    with (#zero, #succ(let x)) ::
+      #False
+    with (#succ(let x), #succ(let y)) ::
+      eq(x, y)
+
+
+// LIST FUNCTIONS
+
+func size(_ list: List) -> Nat ::
+  match list
+    with #empty :: #zero
+    with #cons(let x, let l) ::
+      #succ(size(l))
+
+
+func insert(_ nat: Nat, _ list: List) -> List ::
+// Insert a nat in the list
+  match list
+    with #empty::
+      #cons(nat, #empty)
+    with let l ::
+      #cons(nat, l)
+
+
+func eq_list(_ list1: List, _ list2: List) -> Boolean ::
+// Return a Boolean if both list are equal
+  match (list1, list2)
+    with (#empty, #empty) :: #True
+    with (#empty, let l) :: #False
+    with (let l, #empty) :: #False
+    with (#cons(let x1, let l1), #cons(let x2, let l2)) ::
+      match eq(x1, x2)
+        with #True :: eq_list(l1, l2)
+        with #False :: #False
+
+
+func remove_one(_ nat: Nat, _ list: List) -> List ::
+// Return a list where we remove the first element equal to nat
+  match list
+    with #empty ::
+      #empty
+    with #cons(let x, let l) ::
+      match eq(x, nat)
+        with #True :: l
+        with #False :: #cons(x, remove_one(nat, l))
+
+
+func remove_all(_ nat: Nat, _ list: List) -> List ::
+// Return a list where we remove all element equal to nat
+  match list
+    with #empty ::
+      #empty
+    with #cons(let x, let l) ::
+      match eq(x, nat)
+        with #True :: remove_all(nat, l)
+        with #False :: #cons(x, remove_all(nat, l))
+
+
+func look_at_index(_ nat: Nat, _ list: List) -> Nat ::
+// Return the value of a specific index (return zero if it's not exist)
+  match nat
+    with #zero ::
+      (match list
+        with #empty ::
+          #zero
+        with #cons(let n, let l) ::
+          n)
+    with #succ(let x) ::
+      match list
+        with #empty ::
+          #zero
+        with #cons(let y, let l) ::
+          look_at_index(x, l)

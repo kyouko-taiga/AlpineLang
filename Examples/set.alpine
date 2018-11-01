@@ -1,5 +1,10 @@
 // Examples
 
+// 0 = 1 -> False
+// eq(#zero, #succ(#zero))
+// 1 = 1 -> True
+// eq(#succ(#zero), #succ(#zero))
+
 // {0, 2, 3}
 // #cons(#zero, #cons(#succ(#succ(#zero)), #cons(#succ(#succ(#succ(#zero))), #empty)))
 // contain(2, {2, 1}) -> True
@@ -68,9 +73,9 @@ func eq(_ nat1: Nat, _ nat2: Nat) -> Boolean ::
   match (nat1, nat2)
     with (#zero, #zero) ::
       #True
-    with (let x, #zero) ::
+    with (#succ(let x), #zero) ::
       #False
-    with (#zero, let x) ::
+    with (#zero, #succ(let x)) ::
       #False
     with (#succ(let x), #succ(let y)) ::
       eq(x, y)
@@ -114,8 +119,8 @@ func eq_set(_ set1: Set, _ set2: Set) -> Boolean ::
 // Equality between two sets
   match (set1, set2)
     with (#empty, #empty) :: #True
-    with (#empty, let x) :: #False
-    with (let x, #empty) :: #False
+    with (#empty, #cons(let x, let r)) :: #False
+    with (#cons(let x, let r), #empty) :: #False
     with (#cons(let x, let s1), let s2) ::
       match contain(x, s2)
         with #True ::
