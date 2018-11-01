@@ -87,7 +87,7 @@ public enum InfixOperator: String, CustomStringConvertible {
     case .le : return "<="
     case .ge : return ">="
     case .gt : return ">"
-    case .eq : return "=="
+    case .eq : return "="
     case .ne : return "!="
     default  : return rawValue
     }

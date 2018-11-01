@@ -98,26 +98,25 @@ extension Parser {
 
   /// Parses a tuple signature.
   func parseTupleSign() throws -> TupleSign {
-    var start: SourceLocation? = nil
     var label: String? = nil
+    var start: SourceLocation? = nil
 
     // Parse the label of the signature, if any.
     if let sharp = consume(.sharp) {
-      guard let identifier = consume(.identifier)
-        else { throw parseFailure(.expectedIdentifier) }
+      let (value, range) = try parseLabel()
       start = sharp.range.start
-      label = identifier.value
+      label = value
 
-      // Labeled tubple signatures may not have explicit tuple elements.
+      // Labeled tuple signatures may not have explicit tuple elements.
       let backtrackPosition = streamPosition
       consumeNewlines()
-      if label != nil && peek().kind != .leftParen {
+      if peek().kind != .leftParen {
         rewind(to: backtrackPosition)
         return TupleSign(
           label: label,
           elements: [],
           module: module,
-          range: SourceRange(from: start!, to: identifier.range.end))
+          range: SourceRange(from: start!, to: range.end))
       }
     }
 
@@ -161,9 +160,12 @@ extension Parser {
     // whether the first identifier(s) we encounter are part of the API or the signature.
 
     let backtrackPosition = streamPosition
-    if let first = consume(.underscore) ?? consume(.identifier) {
+
+    if let first = consume(.underscore) ?? consume(if: { $0.isLabel }) {
+      consumeNewlines()
+
       // If we could parse a first identifier, there might be a formal name as well.
-      if let second = consume(.identifier, afterMany: .newline) {
+      if let second = consume(if: { $0.isLabel }) {
         // Parsing two names (or `_` + a name) means both must be part of the API. Hence the next
         // tokens should be a colon followed by the signature of the element.
         guard consume(.colon, afterMany: .newline) != nil
@@ -172,8 +174,8 @@ extension Parser {
         let signature = try parseSign()
 
         return TupleSignElem(
-          label: (first.kind == .identifier) ? first.value : nil,
-          name: second.value,
+          label: first.asLabel,
+          name: second.asLabel,
           signature: signature,
           module: module,
           range: SourceRange(from: first.range.start, to: signature.range.end))
@@ -184,8 +186,8 @@ extension Parser {
         let signature = try parseSign()
 
         return TupleSignElem(
-          label: (first.kind == .identifier) ? first.value : nil,
-          name: (first.kind == .identifier) ? first.value : nil,
+          label: first.asLabel,
+          name: first.asLabel,
           signature: signature,
           module: module,
           range: SourceRange(from: first.range.start, to: signature.range.end))
