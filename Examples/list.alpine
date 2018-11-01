@@ -16,6 +16,10 @@
 // remove_all(#zero, #cons(#zero, #empty))
 // remove_all(0, [0, 1, 0]) -> [1]
 // remove_all(#zero, #cons(#succ(#zero), #cons(#zero, #empty)))
+// look_at_index(#succ(#succ(#zero)))
+// look_at_index(2, [0, 2, 3]) -> [3]
+// look_at_index(#succ(#succ(#zero)), #cons(#zero, #cons(#succ(#succ(#zero)), #cons(#succ(#succ(#succ(#zero))), #empty))))
+
 
 type Nat :: #zero or #succ(Nat)
 type Boolean :: #True or #False
@@ -111,18 +115,18 @@ func remove_all(_ nat: Nat, _ list: List) -> List ::
         with #False :: #cons(x, remove_all(nat, l))
 
 
-// func look_at_index(_ nat: Nat, _ list: List) -> Nat ::
-// // Return the value of a specific index (return zero if it's not exist)
-//   match nat
-//     with #zero ::
-//       match list
-//         with #empty ::
-//           #zero
-//         with #cons(let n, let l) ::
-//           n;
-//     with #succ(let x) ::
-//       match list
-//         with #empty ::
-//           #zero
-//         with #cons(let y, let l) ::
-//           look_at_index(x, l)
+func look_at_index(_ nat: Nat, _ list: List) -> Nat ::
+// Return the value of a specific index (return zero if it's not exist)
+  match nat
+    with #zero ::
+      (match list
+        with #empty ::
+          #zero
+        with #cons(let n, let l) ::
+          n)
+    with #succ(let x) ::
+      match list
+        with #empty ::
+          #zero
+        with #cons(let y, let l) ::
+          look_at_index(x, l)
