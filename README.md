@@ -52,7 +52,7 @@ You can add Alpine-Lang as a dependency to your project with Swift Package Manag
 let package = Package(
   name: "AwesomeProject",
   dependencies: [
-    .package(url: "https://github.com/kyouko-taiga/AlpineLang.git", branch: "master"),
+    .package(url: "https://github.com/kyouko-taiga/AlpineLang.git", .branch("master")),
   ],
   // ...
 ```
