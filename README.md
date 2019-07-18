@@ -31,17 +31,59 @@ which you can use from there or move wherever you want.
 swift build -c release
 ```
 
-You can interpret an expression with the following command:
+```bash
+./alpine -e '"Hello, World!"'
+```
+
+You can add Alpine in your profile to use wherever you want in your terminal.  
+Add in your `~/.bash_profile` (*MacOs*) | `~/.profile` or `~/.bashrc` (*Linux*):
+
+```bash
+export PATH="/My/Folder/AlpineLang/.build/release:$PATH"
+```
+
+Think to update your terminal:  
+```bash
+source ~/.bash_profile
+# or
+source ~/.profile
+# or
+source ~/.bashrc
+```
+
+Now you can just call:  
 
 ```bash
 alpine -e '"Hello, World!"'
 ```
 
-use the `--import` option to specify the path of a module containing additional definitions
+
+use the `--import` or `-i` option to specify the path of a module containing additional definitions
 such as function and type declarations:
 
 ```bash
 alpine --import some/module.alpine -e 'my_function(a: 1, b: 2)'
+```
+
+Import with the `Examples` folder:
+
+```bash
+alpine --import Examples/list.alpine -e 'size(#cons(#zero, #cons(#succ(#zero), #empty)))'
+```
+
+Print the **AST** :
+
+```bash
+alpine --dump-ast --import Examples/list.alpine -e 'size(#cons(#zero, #cons(#succ(#zero), #empty)))'
+```
+
+
+Help:
+
+```bash
+alpine -h
+# or
+alpine --help
 ```
 
 ### As a Library
