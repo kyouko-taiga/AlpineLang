@@ -31,6 +31,8 @@ which you can use from there or move wherever you want.
 swift build -c release
 ```
 
+You can interpret an expression with the following command:
+
 ```bash
 ./alpine -e '"Hello, World!"'
 ```
