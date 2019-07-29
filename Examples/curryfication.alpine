@@ -1,0 +1,20 @@
+func add(_ x: Int, _ y: Int) -> Int ::
+  x + y
+
+func sub(_ x: Int, _ y: Int) -> Int ::
+x - y
+
+func div(_ x: Int, _ y: Int) -> Int ::
+x / y
+
+func mul(_ x: Int, _ y: Int) -> Int ::
+x * y
+
+// Example: operationNoCurry(9, 5 , op: add)
+func operationNoCurry(_ x: Int, _ y: Int , op: (Int, Int) -> Int) -> Int ::
+  op(x,y)
+
+// Example: operationCurry(9, op: add)(5)
+func operationCurry(_ x: Int, op: (Int, Int) -> Int) -> (Int) -> Int ::
+  func partialApply(_ y: Int) -> Int ::
+    op(x,y);

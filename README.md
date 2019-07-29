@@ -98,7 +98,12 @@ let package = Package(
   dependencies: [
     .package(url: "https://github.com/kyouko-taiga/AlpineLang.git", .branch("master")),
   ],
-  // ...
+  targets: [
+    .target(
+        name: "AwesomeProject",
+        dependencies: ["AlpineLib"]),
+    // ...
+]
 ```
 
 This will let you import Alpine-Lan's interpreter in your own code:
@@ -108,6 +113,31 @@ import Interpreter
 
 var interpreter = Interpreter()
 let value = try! interpreter.eval(string: "\"Hello, World!\"")
+print(value)
+```
+
+If you want to load a module:
+
+```swift
+import Interpreter
+
+var module: String = """
+type Boolean :: #True or #False
+
+func not(_ bool: Boolean) -> Boolean ::
+// Not of a boolean
+  match(bool)
+    with #True ::
+      #False
+    with #False ::
+      #True
+"""
+
+var interpreter = Interpreter()
+try! interpreter.loadModule(fromString: module)
+let code: String = "not(#True)"
+let value = try! interpreter.eval(string: code)
+// #False
 print(value)
 ```
 
