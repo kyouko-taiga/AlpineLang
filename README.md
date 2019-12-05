@@ -164,15 +164,15 @@ let-binding     :: "let", ident ;
 binary          :: expr, operator, expr ;
 unary           :: operator, expr ;
 call            :: expr, "(", { arg }, ")" ;
-arg             ::= [ ident, ":" ], expr ;
-tuple           ::= "(", { tuple-elem }, ")" ;
-tuple-elem      ::= [ ident, ":" ], expr ;
-select          ::= expr, ".", expr ;
-ident           ::= ( letter | underscore ), { character } ;
-string          ::= "\"", character, "\"" ;
-real            ::= integer, ".", [ digit ], { digit } ;
-integer         ::= "0" | [ "-" ], non-zero-digit, { digit } ;
-boolean         ::= "true" | "false" ;
+arg             :: [ ident, ":" ], expr ;
+tuple           :: "(", { tuple-elem }, ")" ;
+tuple-elem      :: [ ident, ":" ], expr ;
+select          :: expr, ".", expr ;
+ident           :: ( letter | underscore ), { character } ;
+string          :: "\"", character, "\"" ;
+real            :: integer, ".", [ digit ], { digit } ;
+integer         :: "0" | [ "-" ], non-zero-digit, { digit } ;
+boolean         :: "true" | "false" ;
 ```
 
 ## Type System
