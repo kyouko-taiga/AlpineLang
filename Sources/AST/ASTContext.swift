@@ -25,6 +25,30 @@ public final class ASTContext {
   public func add(constraint: Constraint) {
     typeConstraints.append(constraint)
   }
+  
+  public func getFunctionTypes() -> [FunctionType] {
+    return functionTypes
+  }
+  
+  public func getTupleTypes() -> [TupleType] {
+    return tupleTypes
+  }
+  
+  public func getUnionTypes() -> [UnionType] {
+    return unionTypes
+  }
+
+  public func setFunctionTypes(functionTypes: [FunctionType]) {
+    self.functionTypes = functionTypes
+  }
+  
+  public func setTuplesTypes(tupleTypes: [TupleType]) {
+    self.tupleTypes = tupleTypes
+  }
+  
+  public func setUnionTypes(unionTypes: [UnionType]) {
+    self.unionTypes = unionTypes
+  }
 
   /// Retrieves or create a function type.
   public func getFunctionType(from domain: TupleType, to codomain: TypeBase) -> FunctionType {

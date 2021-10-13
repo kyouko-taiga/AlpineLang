@@ -41,11 +41,23 @@ public struct Interpreter {
     let parser = try Parser(source: input)
     let expr = try parser.parseExpr()
 
+    let originalFuncTypes = astContext.getFunctionTypes()
+    let originalTupleTypes = astContext.getTupleTypes()
+    let originalUnionTypes = astContext.getUnionTypes()
+    
     // Expressions can't be analyzed nor ran out-of-context, they must be nested in a module.
     let module = Module(statements: [expr], range: expr.range)
 
     // Run semantic analysis to get the typed AST.
     let typedModule = try runSema(on: module) as! Module
+    
+    // Reset different type contexts: Functions type, tuples types and union types
+    defer {
+      astContext.setFunctionTypes(functionTypes: originalFuncTypes)
+      astContext.setTuplesTypes(tupleTypes: originalTupleTypes)
+      astContext.setUnionTypes(unionTypes: originalUnionTypes)
+    }
+    
     return eval(expression: typedModule.statements[0] as! Expr)
   }
 
