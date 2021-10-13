@@ -26,28 +26,12 @@ public final class ASTContext {
     typeConstraints.append(constraint)
   }
   
-  public func getFunctionTypes() -> [FunctionType] {
-    return functionTypes
+  public func removeLastFunctionTypes() {
+    self.functionTypes.removeLast()
   }
   
-  public func getTupleTypes() -> [TupleType] {
-    return tupleTypes
-  }
-  
-  public func getUnionTypes() -> [UnionType] {
-    return unionTypes
-  }
-
-  public func setFunctionTypes(functionTypes: [FunctionType]) {
-    self.functionTypes = functionTypes
-  }
-  
-  public func setTuplesTypes(tupleTypes: [TupleType]) {
-    self.tupleTypes = tupleTypes
-  }
-  
-  public func setUnionTypes(unionTypes: [UnionType]) {
-    self.unionTypes = unionTypes
+  public func removeLastTupleTypes() {
+    self.tupleTypes.removeLast()
   }
 
   /// Retrieves or create a function type.

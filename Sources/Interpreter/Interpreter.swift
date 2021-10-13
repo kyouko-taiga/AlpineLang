@@ -36,29 +36,24 @@ public struct Interpreter {
   }
 
   // Evaluate an expression from a text input, within the currently loaded context.
-  public func eval(string input: String) throws -> Value {
+  public mutating func eval(string input: String) throws -> Value {
+    
     // Parse the epxression into an untyped AST.
     let parser = try Parser(source: input)
     let expr = try parser.parseExpr()
-
-    let originalFuncTypes = astContext.getFunctionTypes()
-    let originalTupleTypes = astContext.getTupleTypes()
-    let originalUnionTypes = astContext.getUnionTypes()
     
     // Expressions can't be analyzed nor ran out-of-context, they must be nested in a module.
     let module = Module(statements: [expr], range: expr.range)
-
+    
     // Run semantic analysis to get the typed AST.
     let typedModule = try runSema(on: module) as! Module
+            
+    let res = eval(expression: typedModule.statements[0] as! Expr)
     
-    // Reset different type contexts: Functions type, tuples types and union types
-    defer {
-      astContext.setFunctionTypes(functionTypes: originalFuncTypes)
-      astContext.setTuplesTypes(tupleTypes: originalTupleTypes)
-      astContext.setUnionTypes(unionTypes: originalUnionTypes)
-    }
+    astContext.removeLastTupleTypes()
+    astContext.removeLastFunctionTypes()
     
-    return eval(expression: typedModule.statements[0] as! Expr)
+    return res
   }
 
   public func eval(expression: Expr) -> Value {
