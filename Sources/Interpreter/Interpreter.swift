@@ -36,7 +36,7 @@ public struct Interpreter {
   }
 
   // Evaluate an expression from a text input, within the currently loaded context.
-  public mutating func eval(string input: String) throws -> Value {
+  public func eval(string input: String) throws -> Value {
     
     // Parse the epxression into an untyped AST.
     let parser = try Parser(source: input)
