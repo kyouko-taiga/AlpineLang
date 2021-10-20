@@ -25,14 +25,6 @@ public final class ASTContext {
   public func add(constraint: Constraint) {
     typeConstraints.append(constraint)
   }
-  
-  public func removeLastFunctionTypes() {
-    self.functionTypes.removeLast()
-  }
-  
-  public func removeLastTupleTypes() {
-    self.tupleTypes.removeLast()
-  }
 
   /// Retrieves or create a function type.
   public func getFunctionType(from domain: TupleType, to codomain: TypeBase) -> FunctionType {
