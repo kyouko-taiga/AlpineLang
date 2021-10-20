@@ -16,11 +16,11 @@ public final class ASTContext {
   /// The type constraints that haven't been solved yet.
   public var typeConstraints: [Constraint] = []
   /// The function types in the context.
-  private var functionTypes: [FunctionType] = []
+  public var functionTypes: [FunctionType] = []
   /// The tuple types in the context.
-  private var tupleTypes: [TupleType] = []
+  public var tupleTypes: [TupleType] = []
   /// The union types in the context.
-  private var unionTypes: [UnionType] = []
+  public var unionTypes: [UnionType] = []
 
   public func add(constraint: Constraint) {
     typeConstraints.append(constraint)

@@ -37,6 +37,10 @@ public struct Interpreter {
 
   // Evaluate an expression from a text input, within the currently loaded context.
   public func eval(string input: String) throws -> Value {
+
+    // Keep the old context, avoiding to keep new functions from the input code
+    let tempFunctionTypes = astContext.functionTypes
+    let tempTupleTypes = astContext.tupleTypes
     
     // Parse the epxression into an untyped AST.
     let parser = try Parser(source: input)
@@ -47,11 +51,16 @@ public struct Interpreter {
     
     // Run semantic analysis to get the typed AST.
     let typedModule = try runSema(on: module) as! Module
-            
+
+    // Compute the evaluation
     let res = eval(expression: typedModule.statements[0] as! Expr)
     
-    astContext.removeLastTupleTypes()
-    astContext.removeLastFunctionTypes()
+    // Do not assign the old context if it was empty, cause the first time built-in functions are assigned
+    // We do not want remove them
+    if !tempFunctionTypes.isEmpty && !tempTupleTypes.isEmpty {
+      astContext.functionTypes = tempFunctionTypes
+      astContext.tupleTypes = tempTupleTypes
+    }
     
     return res
   }
