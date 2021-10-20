@@ -25,6 +25,15 @@ public final class ASTContext {
   public func add(constraint: Constraint) {
     typeConstraints.append(constraint)
   }
+  
+  public func saveContext() -> ([FunctionType], [TupleType]){
+    return (functionTypes, tupleTypes)
+  }
+  
+  public func reloadContext(context: ([FunctionType], [TupleType])) {
+    self.functionTypes = context.0
+    self.tupleTypes = context.1
+  }
 
   /// Retrieves or create a function type.
   public func getFunctionType(from domain: TupleType, to codomain: TypeBase) -> FunctionType {

@@ -34,19 +34,32 @@ public struct Interpreter {
     astContext.modules.append(module)
     return module
   }
+  
+  public func saveContext() -> ([FunctionType], [TupleType]) {
+    return astContext.saveContext()
+  }
+  
+  public func reloadContext(context: ([FunctionType], [TupleType])) {
+    astContext.reloadContext(context: context)
+  }
 
   // Evaluate an expression from a text input, within the currently loaded context.
   public func eval(string input: String) throws -> Value {
+    
     // Parse the epxression into an untyped AST.
     let parser = try Parser(source: input)
     let expr = try parser.parseExpr()
-
+    
     // Expressions can't be analyzed nor ran out-of-context, they must be nested in a module.
     let module = Module(statements: [expr], range: expr.range)
-
+    
     // Run semantic analysis to get the typed AST.
     let typedModule = try runSema(on: module) as! Module
-    return eval(expression: typedModule.statements[0] as! Expr)
+
+    // Compute the evaluation
+    let res = eval(expression: typedModule.statements[0] as! Expr)
+    
+    return res
   }
 
   public func eval(expression: Expr) -> Value {
