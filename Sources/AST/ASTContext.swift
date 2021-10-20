@@ -16,14 +16,23 @@ public final class ASTContext {
   /// The type constraints that haven't been solved yet.
   public var typeConstraints: [Constraint] = []
   /// The function types in the context.
-  public var functionTypes: [FunctionType] = []
+  private var functionTypes: [FunctionType] = []
   /// The tuple types in the context.
-  public var tupleTypes: [TupleType] = []
+  private var tupleTypes: [TupleType] = []
   /// The union types in the context.
-  public var unionTypes: [UnionType] = []
+  private var unionTypes: [UnionType] = []
 
   public func add(constraint: Constraint) {
     typeConstraints.append(constraint)
+  }
+  
+  public func saveContext() -> ([FunctionType], [TupleType]){
+    return (functionTypes, tupleTypes)
+  }
+  
+  public func reloadContext(context: ([FunctionType], [TupleType])) {
+    self.functionTypes = context.0
+    self.tupleTypes = context.1
   }
 
   /// Retrieves or create a function type.
